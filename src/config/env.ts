@@ -1,0 +1,40 @@
+import { z } from 'zod';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.coerce.number().default(4000),
+  DATABASE_URL: z.string().url(),
+  JWT_SECRET: z.string().min(16),
+  JWT_EXPIRES_IN: z.string().default('7d'),
+  REDIS_URL: z.string().default('redis://localhost:6379'),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+  CORS_ORIGIN: z.string().default('http://localhost:5173,http://localhost:3000'),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error('Invalid environment variables:');
+  console.error(parsed.error.format());
+  process.exit(1);
+}
+
+// Production safety: warn if CORS is still using development defaults
+if (
+  parsed.data.NODE_ENV === 'production' &&
+  parsed.data.CORS_ORIGIN.includes('localhost')
+) {
+  console.warn(
+    'WARNING: CORS_ORIGIN contains localhost origins in production mode. ' +
+    'Set CORS_ORIGIN to your actual frontend domain(s) in the .env file.'
+  );
+}
+
+export const env = parsed.data;

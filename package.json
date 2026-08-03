@@ -1,0 +1,55 @@
+{
+  "name": "restaurant-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:seed": "ts-node --transpile-only prisma/seed.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "prisma": {
+    "schema": "prisma/schema"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "*",
+    "@types/express": "*",
+    "@types/multer": "^2.2.0",
+    "@types/node": "*",
+    "nodemon": "^3.1.14",
+    "prisma": "^6.7.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.7.0",
+    "@types/bcryptjs": "*",
+    "@types/jsonwebtoken": "*",
+    "@types/nodemailer": "*",
+    "axios": "^1.13.2",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^5.0.0",
+    "cloudinary": "^2.10.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.0",
+    "ioredis": "^5.6.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
+    "nodemailer": "^6.10.0",
+    "redis": "^6.1.0",
+    "socket.io": "^4.8.3",
+    "zod": "^3.24.0"
+  }
+}

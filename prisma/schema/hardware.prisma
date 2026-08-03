@@ -1,0 +1,87 @@
+model PosDevice {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  branchId     String   @map("branch_id")
+  deviceId     String   @unique @map("device_id")
+  computerName String?  @map("computer_name") @db.VarChar(255)
+  socketId     String?  @map("socket_id") @db.VarChar(255)
+  version      String?  @db.VarChar(50)
+  status       String   @default("offline") @db.VarChar(50)
+  os           String?  @db.VarChar(100)
+  localIp      String?  @map("local_ip") @db.VarChar(50)
+  lastSeen     DateTime @default(now()) @map("last_seen")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  branch       Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@map("pos_devices")
+}
+
+model Printer {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  branchId      String   @map("branch_id")
+  name          String   @db.VarChar(255)
+  isReceipt     Boolean  @default(false) @map("is_receipt")
+  isKitchen     Boolean  @default(false) @map("is_kitchen")
+  isLabel       Boolean  @default(false) @map("is_label")
+  driver        String   @db.VarChar(50)
+  vendorId      String?  @map("vendor_id") @db.VarChar(100)
+  productId     String?  @map("product_id") @db.VarChar(100)
+  ip            String?  @db.VarChar(50)
+  port          Int?
+  paperWidth    Int      @default(80) @map("paper_width")
+  status        String   @default("offline") @db.VarChar(50)
+  lastHeartbeat DateTime @default(now()) @map("last_heartbeat")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  branch        Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@map("printers")
+}
+
+model PrintJob {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  branchId  String   @map("branch_id")
+  deviceId  String?  @map("device_id")
+  printerId String?  @map("printer_id")
+  type      String   @db.VarChar(50)
+  status    String   @default("pending") @db.VarChar(50)
+  payload   Json?
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([deviceId])
+  @@map("print_jobs")
+}
+
+model PrintHistory {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  branchId  String   @map("branch_id")
+  deviceId  String?  @map("device_id")
+  printerId String?  @map("printer_id")
+  type      String   @db.VarChar(50)
+  status    String   @db.VarChar(50)
+  payload   Json?
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@map("print_history")
+}

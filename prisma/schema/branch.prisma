@@ -1,0 +1,39 @@
+model Branch {
+  id            String         @id @default(uuid())
+  tenantId      String         @map("tenant_id")
+  name          String         @db.VarChar(255)
+  address       String
+  phone         String?        @db.VarChar(50)
+  isActive      Boolean        @default(true) @map("is_active")
+  openingTime   String?        @map("opening_time") @db.VarChar(10)
+  closingTime   String?        @map("closing_time") @db.VarChar(10)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveryZones DeliveryZone[]
+  orders        Order[]
+  posDevices    PosDevice[]
+  printHistory  PrintHistory[]
+  printJobs     PrintJob[]
+  printers      Printer[]
+  staffProfiles StaffProfile[]
+
+  @@index([tenantId])
+  @@map("branches")
+}
+
+model DeliveryZone {
+  id               String   @id @default(uuid())
+  branchId         String   @map("branch_id")
+  areaName         String   @map("area_name") @db.VarChar(255)
+  city             String   @db.VarChar(255)
+  deliveryFee      Decimal  @default(0) @map("delivery_fee") @db.Decimal(10, 2)
+  estimatedMinutes Int      @default(45) @map("estimated_minutes")
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  branch           Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, isActive])
+  @@map("delivery_zones")
+}

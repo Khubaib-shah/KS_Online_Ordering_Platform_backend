@@ -1,0 +1,114 @@
+model Tenant {
+  id             String          @id @default(uuid())
+  name           String          @db.VarChar(255)
+  slug           String          @unique @db.VarChar(100)
+  customDomain   String?         @unique @map("custom_domain") @db.VarChar(255)
+  businessType   BusinessType    @map("business_type")
+  planId         String?         @map("plan_id")
+  status         TenantStatus    @default(ACTIVE)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  branches       Branch[]
+  categories     Category[]
+  customers      Customer[]
+  menuItems      MenuItem[]
+  orders         Order[]
+  posDevices     PosDevice[]
+  printHistory   PrintHistory[]
+  printJobs      PrintJob[]
+  printers       Printer[]
+  promotions     Promotion[]
+  supportTickets SupportTicket[]
+  content        TenantContent?
+  settings       TenantSettings?
+  theme          TenantTheme?
+  plan           PlatformPlan?   @relation(fields: [planId], references: [id])
+  users          User[]
+
+  @@map("tenants")
+}
+
+model TenantSettings {
+  id                    String   @id @default(uuid())
+  tenantId              String   @unique @map("tenant_id")
+  currencySymbol        String   @default("Rs.") @map("currency_symbol") @db.VarChar(10)
+  currencyCode          String   @default("PKR") @map("currency_code") @db.VarChar(10)
+  taxRate               Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  serviceFee            Decimal  @default(0) @map("service_fee") @db.Decimal(5, 2)
+  enableDineIn          Boolean  @default(true) @map("enable_dine_in")
+  enableTakeaway        Boolean  @default(true) @map("enable_takeaway")
+  enableDelivery        Boolean  @default(true) @map("enable_delivery")
+  enabledPaymentMethods String[] @default(["CASH", "CARD", "ONLINE"]) @map("enabled_payment_methods")
+  phone                 String?  @db.VarChar(50)
+  email                 String?  @db.VarChar(255)
+  address               String?
+  receiptHeader         String?  @map("receipt_header")
+  receiptFooter         String?  @map("receipt_footer")
+  stripePublicKey       String?  @map("stripe_public_key") @db.VarChar(255)
+  stripeSecretKeyEnc    String?  @map("stripe_secret_key_enc")
+  deliveryFee           Decimal  @default(0) @map("delivery_fee") @db.Decimal(10, 2)
+  minOrderValue         Decimal  @default(0) @map("min_order_value") @db.Decimal(10, 2)
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  deliveryAreas         Json?    @map("delivery_areas")
+  operatingHours        Json?    @map("operating_hours")
+  tenant                Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_settings")
+}
+
+model TenantTheme {
+  id                 String   @id @default(uuid())
+  tenantId           String   @unique @map("tenant_id")
+  primaryColor       String   @default("#0f172a") @map("primary_color") @db.VarChar(20)
+  accentColor        String   @default("#3b82f6") @map("accent_color") @db.VarChar(20)
+  bgColor            String   @default("#f8fafc") @map("bg_color") @db.VarChar(20)
+  logoUrl            Json?    @map("logo_url")
+  faviconUrl         Json?    @map("favicon_url")
+  fontFamily         String   @default("Inter") @map("font_family") @db.VarChar(100)
+  defaultCardStyle   String   @default("default") @map("default_card_style") @db.VarChar(20)
+  popularCardStyle   String   @default("default") @map("popular_card_style") @db.VarChar(20)
+  categoryBackground Json?    @map("category_background")
+  backgroundImage    Json?    @map("background_image")
+  backgroundMode     String?  @map("background_mode") @db.VarChar(20)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_themes")
+}
+
+model TenantContent {
+  id               String   @id @default(uuid())
+  tenantId         String   @unique @map("tenant_id")
+  announcementText String?  @map("announcement_text")
+  footerConfig     Json?    @map("footer_config")
+  copyConfig       Json?    @map("copy_config")
+  heroSlides       Json?    @map("hero_slides")
+  faqs             Json?
+  privacyPolicy    Json?    @map("privacy_policy")
+  seoTitle         String?  @map("seo_title") @db.VarChar(255)
+  seoDescription   String?  @map("seo_description")
+  activePromo      Json?    @map("active_promo")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_content")
+}
+
+enum BusinessType {
+  RESTAURANT
+  FAST_FOOD
+  CAFE
+  ICE_CREAM_PARLOUR
+  BAKERY
+  CLOUD_KITCHEN
+  RETAIL
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_PAYMENT
+}

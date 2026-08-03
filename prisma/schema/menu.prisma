@@ -1,0 +1,77 @@
+model Category {
+  id        String     @id @default(uuid())
+  tenantId  String     @map("tenant_id")
+  name      String     @db.VarChar(255)
+  slug      String     @db.VarChar(255)
+  imageUrl  Json?      @map("image_url")
+  cardStyle String?    @map("card_style") @db.VarChar(20)
+  sortOrder Int        @default(0) @map("sort_order")
+  isActive  Boolean    @default(true) @map("is_active")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  menuItems MenuItem[]
+
+  @@index([tenantId, sortOrder])
+  @@map("categories")
+}
+
+model MenuItem {
+  id                  String         @id @default(uuid())
+  tenantId            String         @map("tenant_id")
+  categoryId          String         @map("category_id")
+  name                String         @db.VarChar(255)
+  description         String?
+  imageUrl            Json?          @map("image_url")
+  basePrice           Decimal        @map("base_price") @db.Decimal(10, 2)
+  discountedPrice     Decimal?       @map("discounted_price") @db.Decimal(10, 2)
+  badgeText           String?        @map("badge_text") @db.VarChar(100)
+  badgeColor          String?        @map("badge_color") @db.VarChar(20)
+  metaNote            String?        @map("meta_note") @db.VarChar(255)
+  pricePrefix         String?        @map("price_prefix") @db.VarChar(50)
+  dealLayout          Boolean        @default(false) @map("deal_layout")
+  calories            Int?
+  preparationTimeMins Int            @default(15) @map("preparation_time_mins")
+  isAvailable         Boolean        @default(true) @map("is_available")
+  isFeatured          Boolean        @default(false) @map("is_featured")
+  sortOrder           Int            @default(0) @map("sort_order")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+  category            Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  tenant              Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orderItems          OrderItem[]
+  variantGroups       VariantGroup[]
+
+  @@index([tenantId, categoryId])
+  @@index([tenantId, isAvailable])
+  @@map("menu_items")
+}
+
+model VariantGroup {
+  id         String          @id @default(uuid())
+  menuItemId String          @map("menu_item_id")
+  title      String          @db.VarChar(255)
+  minSelect  Int             @default(0) @map("min_select")
+  maxSelect  Int             @default(1) @map("max_select")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+  menuItem   MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  options    VariantOption[]
+
+  @@index([menuItemId])
+  @@map("variant_groups")
+}
+
+model VariantOption {
+  id             String       @id @default(uuid())
+  variantGroupId String       @map("variant_group_id")
+  name           String       @db.VarChar(255)
+  priceModifier  Decimal      @default(0) @map("price_modifier") @db.Decimal(10, 2)
+  isDefault      Boolean      @default(false) @map("is_default")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  variantGroup   VariantGroup @relation(fields: [variantGroupId], references: [id], onDelete: Cascade)
+
+  @@index([variantGroupId])
+  @@map("variant_options")
+}
