@@ -2,9 +2,12 @@
 
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { errorHandler } from './middlewares/error-handler.middleware';
+import { sendSuccess, sendError } from './lib/api-response';
+import { loggerMiddleware } from './middlewares/logger.middleware';
 
 // Module routes
 import tenantRoutes from './modules/tenant/tenant.routes';
@@ -22,6 +25,8 @@ import uploadRoutes from './modules/upload/upload.routes';
 const app = express();
 
 // ── Global Middleware ──
+app.use(helmet());
+app.use(loggerMiddleware);
 app.use(cors({
   origin: env.CORS_ORIGIN.split(','),
   credentials: true,
@@ -32,7 +37,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ── Health Check ──
 app.get('/api/v1/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  sendSuccess(res, { status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // ── Route Registration ──
@@ -81,18 +86,15 @@ app.get('/api/v1/test-print', async (req, res) => {
       }
     });
     
-    res.json({ success: true, message: 'Print job dispatched to socket.io!' });
+    sendSuccess(res, { message: 'Print job dispatched to socket.io!' });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    sendError(res, 500, 'INTERNAL_SERVER_ERROR', err.message);
   }
 });
 
 // ── 404 Handler ──
 app.use((_req, res) => {
-  res.status(404).json({
-    success: false,
-    error: { code: 'NOT_FOUND', message: 'Endpoint not found' },
-  });
+  sendError(res, 404, 'NOT_FOUND', 'Endpoint not found');
 });
 
 // ── Global Error Handler (must be last) ──

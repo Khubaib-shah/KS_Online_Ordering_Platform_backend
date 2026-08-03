@@ -2,14 +2,32 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { logger } from '../../config/logger';
 import { prisma } from '../../config/database';
+import jwt from 'jsonwebtoken';
+import { env } from '../../config/env';
 
 let io: Server;
 
 export const initSocketIO = (server: HttpServer) => {
   io = new Server(server, {
     cors: {
-      origin: '*', // Adjust based on security requirements
-      methods: ['GET', 'POST']
+      origin: env.CORS_ORIGIN.split(','),
+      methods: ['GET', 'POST'],
+      credentials: true
+    }
+  });
+
+  // Authentication Middleware
+  io.use((socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+      if (token) {
+        const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+        socket.data.user = decoded;
+      }
+      next();
+    } catch (err) {
+      // Allow unauthenticated connections but flag them (e.g. for devices that use deviceId auth)
+      next();
     }
   });
 
@@ -36,6 +54,10 @@ export const initSocketIO = (server: HttpServer) => {
             status: 'online',
           }
         });
+
+        // Join tenant and branch specific rooms for isolation
+        socket.join(`tenant:${tenantId}`);
+        socket.join(`branch:${branchId}`);
 
         logger.info(`Device registered: ${deviceId} at socket ${socket.id}`);
         socket.emit('device:ready', { status: 'ok' });

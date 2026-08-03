@@ -1,14 +1,11 @@
 // ─── Super Admin Routes ──────────────────────────────────────────────
 import { Router } from 'express';
-import { z } from 'zod';
 import { superadminController } from './superadmin.controller';
 import { validate } from '../../middlewares/validate.middleware';
 import { authRequired, superAdminOnly } from '../../middlewares/auth.middleware';
 import { createTenantSchema, updateTenantSchema } from '../tenant/tenant.validation';
 
-const updateStatusSchema = z.object({
-  status: z.enum(['ACTIVE', 'SUSPENDED', 'PENDING_PAYMENT']),
-});
+import { updateStatusSchema, createGlobalAreaSchema, updateGlobalAreaSchema } from './superadmin.validation';
 
 const router = Router();
 
@@ -61,26 +58,12 @@ router.get('/stats', superadminController.getPlatformStats);
 router.get('/areas', superadminController.listGlobalAreas);
 router.post(
   '/areas',
-  validate({
-    body: z.object({
-      city: z.string().min(1),
-      region: z.string().min(1),
-      name: z.string().min(1),
-      isActive: z.boolean().optional(),
-    }),
-  }),
+  validate({ body: createGlobalAreaSchema }),
   superadminController.createGlobalArea
 );
 router.put(
   '/areas/:id',
-  validate({
-    body: z.object({
-      city: z.string().min(1).optional(),
-      region: z.string().min(1).optional(),
-      name: z.string().min(1).optional(),
-      isActive: z.boolean().optional(),
-    }),
-  }),
+  validate({ body: updateGlobalAreaSchema }),
   superadminController.updateGlobalArea
 );
 router.delete('/areas/:id', superadminController.deleteGlobalArea);

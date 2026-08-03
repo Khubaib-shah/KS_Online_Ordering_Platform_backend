@@ -1,28 +1,12 @@
 // ─── Promotion Routes ───────────────────────────────────────────────
 import { Router } from 'express';
-import { z } from 'zod';
 import { promotionController } from './promotion.controller';
 import { validate } from '../../middlewares/validate.middleware';
 import { tenantResolver } from '../../middlewares/tenant-resolver.middleware';
 import { authRequired } from '../../middlewares/auth.middleware';
 import { requirePermission } from '../../middlewares/permission.middleware';
 
-const createPromoSchema = z.object({
-  code: z.string().min(1).max(50).transform(v => v.toUpperCase()),
-  discountType: z.enum(['PERCENTAGE', 'FIXED_AMOUNT', 'FREE_DELIVERY']),
-  discountValue: z.number().min(0),
-  minOrderAmount: z.number().min(0).optional(),
-  maxDiscountCap: z.number().min(0).optional().nullable(),
-  startDate: z.string().datetime().optional().nullable(),
-  endDate: z.string().datetime().optional().nullable(),
-  usageLimit: z.number().int().min(1).optional().nullable(),
-  isActive: z.boolean().optional(),
-});
-
-const validatePromoSchema = z.object({
-  promoCode: z.string().min(1),
-  subtotal: z.number().min(0),
-});
+import { createPromoSchema, validatePromoSchema } from './promotion.validation';
 
 const router = Router();
 

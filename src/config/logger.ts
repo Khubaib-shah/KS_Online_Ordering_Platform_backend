@@ -1,28 +1,30 @@
-// ─── Structured Logger ──────────────────────────────────────────────
-// Simple structured logging with request-id correlation.
-// Replace with pino/winston in production for JSON-structured log shipping.
+import pino from 'pino';
+import { env } from './env';
 
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
-
-function formatMessage(level: LogLevel, message: string, meta?: Record<string, unknown>): string {
-  const timestamp = new Date().toISOString();
-  const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
-  return `[${timestamp}] [${level.toUpperCase()}] ${message}${metaStr}`;
-}
+const pinoLogger = pino({
+  level: env.NODE_ENV === 'production' ? 'info' : 'debug',
+  transport:
+    env.NODE_ENV !== 'production'
+      ? {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+          },
+        }
+      : undefined,
+});
 
 export const logger = {
   info: (message: string, meta?: Record<string, unknown>) => {
-    console.log(formatMessage('info', message, meta));
+    meta ? pinoLogger.info(meta, message) : pinoLogger.info(message);
   },
   warn: (message: string, meta?: Record<string, unknown>) => {
-    console.warn(formatMessage('warn', message, meta));
+    meta ? pinoLogger.warn(meta, message) : pinoLogger.warn(message);
   },
   error: (message: string, meta?: Record<string, unknown>) => {
-    console.error(formatMessage('error', message, meta));
+    meta ? pinoLogger.error(meta, message) : pinoLogger.error(message);
   },
   debug: (message: string, meta?: Record<string, unknown>) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug(formatMessage('debug', message, meta));
-    }
+    meta ? pinoLogger.debug(meta, message) : pinoLogger.debug(message);
   },
 };
