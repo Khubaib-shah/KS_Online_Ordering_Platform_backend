@@ -70,8 +70,8 @@ export const initSocketIO = (server: HttpServer) => {
             socketId: null
           }
         });
-      } catch (error) {
-        logger.error(`Error handling disconnect for ${socket.id}`, error);
+      } catch (error: any) {
+        logger.error(`Error handling disconnect for ${socket.id}`, error?.message || error);
       }
     });
   });
