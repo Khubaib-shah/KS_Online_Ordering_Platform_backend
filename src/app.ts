@@ -2,12 +2,9 @@
 
 import express from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { errorHandler } from './middlewares/error-handler.middleware';
-import { sendSuccess, sendError } from './lib/api-response';
-import { loggerMiddleware } from './middlewares/logger.middleware';
 
 // Module routes
 import tenantRoutes from './modules/tenant/tenant.routes';
@@ -21,12 +18,11 @@ import promotionRoutes from './modules/promotion/promotion.routes';
 import reportRoutes from './modules/report/report.routes';
 import superadminRoutes from './modules/superadmin/superadmin.routes';
 import uploadRoutes from './modules/upload/upload.routes';
+import printerRoutes from './modules/printer/printer.routes';
 
 const app = express();
 
 // ── Global Middleware ──
-app.use(helmet());
-app.use(loggerMiddleware);
 app.use(cors({
   origin: env.CORS_ORIGIN.split(','),
   credentials: true,
@@ -37,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // ── Health Check ──
 app.get('/api/v1/health', (_req, res) => {
-  sendSuccess(res, { status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // ── Route Registration ──
@@ -67,13 +63,14 @@ app.use('/api/v1/team', staffRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/superadmin', superadminRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/printer', printerRoutes);
 
 // Test Route for triggering a print job to the POS device!
 app.get('/api/v1/test-print', async (req, res) => {
   try {
     const { getIO } = await import('./modules/printer/printer.socket');
     const io = getIO();
-    
+
     // In production, we'd look up the socketId from the DB using the deviceId
     // For this test, we broadcast to the room or just globally if only 1 device is connected
     io.emit('print:job', {
@@ -85,16 +82,19 @@ app.get('/api/v1/test-print', async (req, res) => {
         items: [{ name: 'Test Burger', qty: 1 }]
       }
     });
-    
-    sendSuccess(res, { message: 'Print job dispatched to socket.io!' });
+
+    res.json({ success: true, message: 'Print job dispatched to socket.io!' });
   } catch (err: any) {
-    sendError(res, 500, 'INTERNAL_SERVER_ERROR', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
 // ── 404 Handler ──
 app.use((_req, res) => {
-  sendError(res, 404, 'NOT_FOUND', 'Endpoint not found');
+  res.status(404).json({
+    success: false,
+    error: { code: 'NOT_FOUND', message: 'Endpoint not found' },
+  });
 });
 
 // ── Global Error Handler (must be last) ──
