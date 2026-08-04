@@ -159,8 +159,8 @@ export const analyticsService = {
       baseWhere.branchId = branchId;
     }
 
-    const currentWhere = { ...baseWhere, createdAt: { gte: currentStart, lte: currentEnd } };
-    const prevWhere = { ...baseWhere, createdAt: { gte: prevStart, lt: prevEnd } };
+    const currentWhere = { ...baseWhere, createdAt: { gte: currentStart, lte: currentEnd }, status: { not: 'CANCELLED' } };
+    const prevWhere = { ...baseWhere, createdAt: { gte: prevStart, lt: prevEnd }, status: { not: 'CANCELLED' } };
     const activeWhere = { ...baseWhere, status: { notIn: ['CANCELLED', 'DELIVERED', 'COMPLETED'] } };
 
     // Run parallel aggregates

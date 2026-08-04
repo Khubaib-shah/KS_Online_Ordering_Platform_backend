@@ -54,7 +54,9 @@ export const listOrdersQuerySchema = z.object({
   channel: z.enum(['POS', 'WEBSITE', 'KITCHEN_MANUAL', 'THIRD_PARTY']).optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().min(1).optional(),
-  limit: z.coerce.number().int().min(1).max(100).optional(),
+  limit: z.coerce.number().int().min(1).max(100000).optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 export const guestOrderTrackingSchema = z.object({

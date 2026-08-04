@@ -42,10 +42,10 @@ export const orderController = {
   async listOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { page, limit } = parsePagination(req.query);
-      const { branchId, status, channel, search } = req.query;
+      const { branchId, status, channel, search, startDate, endDate } = req.query;
       const { orders, total, statusCounts } = await orderService.listOrders(
         req.tenantId!,
-        { branchId, status, channel, search },
+        { branchId, status, channel, search, startDate, endDate },
         page,
         limit
       );

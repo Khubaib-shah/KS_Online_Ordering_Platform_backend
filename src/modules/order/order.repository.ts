@@ -46,19 +46,33 @@ const ORDER_SELECT = {
 const ORDER_LIST_SELECT = {
   id: true,
   orderNumber: true,
+  branchId: true,
   channel: true,
   fulfillmentType: true,
   status: true,
   paymentMethod: true,
   paymentStatus: true,
+  subtotal: true,
+  taxAmount: true,
+  discountAmount: true,
+  deliveryFee: true,
   grandTotal: true,
   tableNumber: true,
   createdAt: true,
   customer: {
-    select: { name: true, phone: true },
+    select: { id: true, name: true, phone: true },
   },
   branch: {
-    select: { name: true },
+    select: { id: true, name: true },
+  },
+  items: {
+    select: {
+      id: true,
+      itemName: true,
+      unitPrice: true,
+      quantity: true,
+      totalPrice: true,
+    }
   },
   _count: { select: { items: true } },
 };
@@ -90,6 +104,8 @@ export const orderRepository = {
     status?: string;
     channel?: string;
     search?: string;
+    startDate?: string;
+    endDate?: string;
   }, skip: number, take: number) {
     const where: any = { tenantId };
     if (filters.branchId) where.branchId = filters.branchId;
@@ -105,6 +121,11 @@ export const orderRepository = {
         { customer: { name: { contains: filters.search, mode: 'insensitive' } } },
         { customer: { phone: { contains: filters.search } } },
       ];
+    }
+    if (filters.startDate || filters.endDate) {
+      where.createdAt = {};
+      if (filters.startDate) where.createdAt.gte = new Date(filters.startDate);
+      if (filters.endDate) where.createdAt.lte = new Date(filters.endDate);
     }
 
     const whereForCounts = { ...where };
