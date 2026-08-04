@@ -37,7 +37,8 @@ export function sendPaginated<T>(
   data: T[],
   total: number,
   page: number,
-  limit: number
+  limit: number,
+  extraMeta?: Record<string, unknown>
 ): void {
   sendSuccess(res, data, 200, {
     pagination: {
@@ -46,5 +47,6 @@ export function sendPaginated<T>(
       total,
       totalPages: Math.ceil(total / limit),
     },
+    ...extraMeta,
   });
 }

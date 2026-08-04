@@ -70,7 +70,7 @@ export const branchRepository = {
     });
   },
 
-  async listStorefrontZones(tenantId: string) {
+  async listWebsiteZones(tenantId: string) {
     return prisma.branch.findMany({
       where: { tenantId, isActive: true },
       select: {

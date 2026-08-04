@@ -16,9 +16,9 @@ import {
 
 const router = Router();
 
-// ── Public Storefront Catalog ──
+// ── Public Website Catalog ──
 router.get(
-  '/storefront/catalog',
+  '/website/catalog',
   tenantResolver(),
   menuController.getPublicCatalog
 );

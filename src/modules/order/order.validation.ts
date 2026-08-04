@@ -12,7 +12,7 @@ const orderItemSchema = z.object({
   itemNote: z.string().optional().nullable(),
 });
 
-export const createStorefrontOrderSchema = z.object({
+export const createWebsiteOrderSchema = z.object({
   branchId: z.string().uuid().optional(), // optional if single-branch tenant
   customer: z.object({
     name: z.string().min(1).max(255),
@@ -50,8 +50,8 @@ export const updateOrderStatusSchema = z.object({
 
 export const listOrdersQuerySchema = z.object({
   branchId: z.string().uuid().optional(),
-  status: z.enum(['PENDING', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED', 'CANCELLED']).optional(),
-  channel: z.enum(['POS', 'STOREFRONT', 'KITCHEN_MANUAL', 'THIRD_PARTY']).optional(),
+  status: z.string().optional(),
+  channel: z.enum(['POS', 'WEBSITE', 'KITCHEN_MANUAL', 'THIRD_PARTY']).optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),

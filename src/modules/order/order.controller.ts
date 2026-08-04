@@ -7,10 +7,10 @@ import { sendSuccess, sendPaginated } from '../../lib/api-response';
 import { parsePagination } from '../../lib/pagination';
 
 export const orderController = {
-  // ── Storefront ──
-  async createStorefrontOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // ── Website ──
+  async createWebsiteOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const order = await orderService.createStorefrontOrder(req.tenantId!, req.body);
+      const order = await orderService.createWebsiteOrder(req.tenantId!, req.body);
       sendSuccess(res, order, 201);
     } catch (error) {
       next(error);
@@ -43,13 +43,13 @@ export const orderController = {
     try {
       const { page, limit } = parsePagination(req.query);
       const { branchId, status, channel, search } = req.query;
-      const { orders, total } = await orderService.listOrders(
+      const { orders, total, statusCounts } = await orderService.listOrders(
         req.tenantId!,
         { branchId, status, channel, search },
         page,
         limit
       );
-      sendPaginated(res, orders, total, page, limit);
+      sendPaginated(res, orders, total, page, limit, { statusCounts });
     } catch (error) {
       next(error);
     }

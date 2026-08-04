@@ -54,7 +54,7 @@ model OrderItem {
 
 enum OrderChannel {
   POS
-  STOREFRONT
+  WEBSITE
   KITCHEN_MANUAL
   THIRD_PARTY
 }

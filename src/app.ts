@@ -19,6 +19,7 @@ import reportRoutes from './modules/report/report.routes';
 import superadminRoutes from './modules/superadmin/superadmin.routes';
 import uploadRoutes from './modules/upload/upload.routes';
 import printerRoutes from './modules/printer/printer.routes';
+import analyticsRoutes from './modules/analytics/analytics.routes';
 
 const app = express();
 
@@ -45,22 +46,23 @@ app.use('/api/v1/tenant', tenantRoutes);
 // Auth
 app.use('/api/v1/auth', authRoutes);
 
-// Public Storefront + Admin Menu (menu routes handle /storefront/catalog internally)
+// Public Website + Admin Menu (menu routes handle /website/catalog internally)
 app.use('/api/v1', menuRoutes);
 
-// Orders: /storefront/orders (public), /pos/orders (staff), /orders (admin)
+// Orders: /website/orders (public), /pos/orders (staff), /orders (admin)
 app.use('/api/v1', orderRoutes);
 
-// Promotions: /storefront/promos/validate (public) + /promotions (admin CRUD)
+// Promotions: /website/promos/validate (public) + /promotions (admin CRUD)
 app.use('/api/v1', promotionRoutes);
 
-// Branches: /branches (admin) + /storefront/delivery-zones (public)
+// Branches: /branches (admin) + /website/delivery-zones (public)
 app.use('/api/v1', branchRoutes);
 
 // Admin-only modules
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/team', staffRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/superadmin', superadminRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/printer', printerRoutes);

@@ -12,7 +12,7 @@ const router = Router();
 
 // ── Public: Validate promo code ──
 router.post(
-  '/storefront/promos/validate',
+  '/website/promos/validate',
   tenantResolver(),
   validate({ body: validatePromoSchema }),
   promotionController.validatePromo

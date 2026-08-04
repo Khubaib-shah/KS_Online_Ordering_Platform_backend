@@ -8,7 +8,7 @@ import { authRequired } from '../../middlewares/auth.middleware';
 import { requirePermission } from '../../middlewares/permission.middleware';
 import { orderCreationRateLimiter } from '../../middlewares/rate-limit.middleware';
 import {
-  createStorefrontOrderSchema,
+  createWebsiteOrderSchema,
   createPosOrderSchema,
   updateOrderStatusSchema,
   listOrdersQuerySchema,
@@ -17,17 +17,17 @@ import {
 
 const router = Router();
 
-// ── Storefront (public, guest-safe) ──
+// ── Website (public, guest-safe) ──
 router.post(
-  '/storefront/orders',
+  '/website/orders',
   orderCreationRateLimiter,
   tenantResolver(),
-  validate({ body: createStorefrontOrderSchema }),
-  orderController.createStorefrontOrder
+  validate({ body: createWebsiteOrderSchema }),
+  orderController.createWebsiteOrder
 );
 
 router.get(
-  '/storefront/orders/:orderNumber',
+  '/website/orders/:orderNumber',
   tenantResolver(),
   validate({ query: guestOrderTrackingSchema }),
   orderController.trackGuestOrder

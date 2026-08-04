@@ -10,9 +10,9 @@ import { generateOrderNumber, recalculateLineItems, OrderItemInput } from './ord
 
 export const orderService = {
   /**
-   * Create a storefront order with server-side price verification.
+   * Create a website order with server-side price verification.
    */
-  async createStorefrontOrder(tenantId: string, data: {
+  async createWebsiteOrder(tenantId: string, data: {
     branchId?: string;
     customer: { name: string; phone: string; email?: string | null };
     items: OrderItemInput[];
@@ -132,7 +132,7 @@ export const orderService = {
           tenantId,
           branchId,
           customerId: customer.id,
-          channel: 'STOREFRONT',
+          channel: 'WEBSITE',
           fulfillmentType: data.fulfillmentType,
           status: 'PENDING',
           paymentMethod: data.paymentMethod,
@@ -252,7 +252,8 @@ export const orderService = {
           customerId,
           channel: 'POS',
           fulfillmentType: data.fulfillmentType,
-          status: 'PENDING',
+          // status: 'PENDING',
+          status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING',
           paymentMethod: data.paymentMethod,
           paymentStatus: 'PAID', // POS orders are paid at counter
           subtotal,
@@ -263,7 +264,8 @@ export const orderService = {
           tableNumber: data.tableNumber,
           specialInstructions: data.specialInstructions,
           privateKitchenNotes: data.privateKitchenNotes,
-          statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString() }],
+          // statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString() }],
+          statusTimeline: [{ status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING', timestamp: new Date().toISOString() }],
           items: { create: orderItems },
         },
         select: {

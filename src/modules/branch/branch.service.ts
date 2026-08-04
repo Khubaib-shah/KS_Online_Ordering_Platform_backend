@@ -34,7 +34,7 @@ export const branchService = {
     return branchRepository.deleteZone(id);
   },
 
-  async listStorefrontZones(tenantId: string) {
-    return branchRepository.listStorefrontZones(tenantId);
+  async listWebsiteZones(tenantId: string) {
+    return branchRepository.listWebsiteZones(tenantId);
   },
 };

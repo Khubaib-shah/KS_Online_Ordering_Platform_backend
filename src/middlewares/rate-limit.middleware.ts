@@ -23,7 +23,7 @@ export const authRateLimiter = rateLimit({
 
 /**
  * Order creation rate limiter: 20 requests per minute per IP.
- * Prevents order-flooding on the public storefront endpoint.
+ * Prevents order-flooding on the public website endpoint.
  */
 export const orderCreationRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute

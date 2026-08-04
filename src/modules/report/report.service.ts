@@ -53,7 +53,7 @@ export const reportService = {
         _sum: { grandTotal: true },
         _count: true,
       }),
-      // Channel breakdown (POS vs Storefront)
+      // Channel breakdown (POS vs Website)
       prisma.order.groupBy({
         by: ['channel'],
         where,

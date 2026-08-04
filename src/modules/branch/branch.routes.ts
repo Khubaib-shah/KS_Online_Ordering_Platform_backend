@@ -78,11 +78,11 @@ router.delete(
   branchController.deleteZone
 );
 
-// ── Public: Storefront delivery zones ──
+// ── Public: Website delivery zones ──
 router.get(
-  '/storefront/delivery-zones',
+  '/website/delivery-zones',
   tenantResolver(),
-  branchController.listStorefrontZones
+  branchController.listWebsiteZones
 );
 
 export default router;

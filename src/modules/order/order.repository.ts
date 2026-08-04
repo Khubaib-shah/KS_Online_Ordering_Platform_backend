@@ -93,7 +93,11 @@ export const orderRepository = {
   }, skip: number, take: number) {
     const where: any = { tenantId };
     if (filters.branchId) where.branchId = filters.branchId;
-    if (filters.status) where.status = filters.status;
+    if (filters.status) {
+      let dbStatus = filters.status.toUpperCase();
+      if (dbStatus === 'CONFIRMED') dbStatus = 'ACCEPTED';
+      where.status = dbStatus;
+    }
     if (filters.channel) where.channel = filters.channel;
     if (filters.search) {
       where.OR = [
@@ -103,7 +107,10 @@ export const orderRepository = {
       ];
     }
 
-    const [orders, total] = await Promise.all([
+    const whereForCounts = { ...where };
+    delete whereForCounts.status;
+
+    const [orders, total, groupedStatuses, totalCountWithoutStatus] = await Promise.all([
       prisma.order.findMany({
         where,
         select: ORDER_LIST_SELECT,
@@ -112,9 +119,23 @@ export const orderRepository = {
         take,
       }),
       prisma.order.count({ where }),
+      prisma.order.groupBy({
+        by: ['status'],
+        where: whereForCounts,
+        _count: true,
+      }),
+      prisma.order.count({ where: whereForCounts }),
     ]);
 
-    return { orders, total };
+    const statusCounts = groupedStatuses.reduce((acc, curr) => {
+      let key = curr.status.toLowerCase();
+      if (key === 'accepted') key = 'confirmed';
+      acc[key] = curr._count;
+      return acc;
+    }, {} as Record<string, number>);
+    statusCounts['all'] = totalCountWithoutStatus;
+
+    return { orders, total, statusCounts };
   },
 
   async updateStatus(id: string, status: string, timeline: any[]) {

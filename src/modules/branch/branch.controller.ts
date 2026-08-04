@@ -76,9 +76,9 @@ export const branchController = {
     }
   },
 
-  async listStorefrontZones(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async listWebsiteZones(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const zones = await branchService.listStorefrontZones(req.tenantId!);
+      const zones = await branchService.listWebsiteZones(req.tenantId!);
       sendSuccess(res, zones);
     } catch (error) {
       next(error);
