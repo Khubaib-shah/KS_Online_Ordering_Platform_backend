@@ -43,6 +43,7 @@ export const createMenuItemSchema = z.object({
   calories: z.number().int().optional().nullable(),
   preparationTimeMins: z.number().int().optional(),
   isAvailable: z.boolean().optional(),
+  availableOnline: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
   variantGroups: z.array(variantGroupSchema).optional(),

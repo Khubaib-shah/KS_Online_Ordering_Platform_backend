@@ -350,6 +350,12 @@ export const orderService = {
     return order;
   },
 
+  async deleteOrder(id: string) {
+    const order = await orderRepository.findById(id);
+    if (!order) throw new NotFoundError('Order', id);
+    return orderRepository.delete(id);
+  },
+
   async listOrders(tenantId: string, filters: any, page: number, limit: number) {
     const skip = (page - 1) * limit;
     return orderRepository.list(tenantId, filters, skip, limit);

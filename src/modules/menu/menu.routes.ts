@@ -110,4 +110,12 @@ router.patch(
   menuController.toggleAvailability
 );
 
+router.patch(
+  '/menu/items/:id/online-availability',
+  authRequired,
+  tenantResolver(),
+  requirePermission('menu', 'MANAGE'),
+  menuController.toggleOnlineAvailability
+);
+
 export default router;

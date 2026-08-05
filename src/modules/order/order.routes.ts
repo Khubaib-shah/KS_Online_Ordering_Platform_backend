@@ -69,6 +69,14 @@ router.get(
   orderController.getOrder
 );
 
+router.delete(
+  '/orders/:id',
+  authRequired,
+  tenantResolver(),
+  requirePermission('orders', 'MANAGE'),
+  orderController.deleteOrder
+);
+
 router.patch(
   '/orders/:id/status',
   authRequired,

@@ -74,4 +74,10 @@ export const menuService = {
     await cacheInvalidateByTag(`catalog:${tenantId}`);
     return result;
   },
+
+  async toggleOnlineAvailability(id: string, tenantId: string, availableOnline: boolean) {
+    const result = await menuRepository.toggleOnlineAvailability(id, availableOnline);
+    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    return result;
+  },
 };

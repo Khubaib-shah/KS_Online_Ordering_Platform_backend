@@ -117,4 +117,14 @@ export const menuController = {
       next(error);
     }
   },
+
+  async toggleOnlineAvailability(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { availableOnline } = req.body;
+      const result = await menuService.toggleOnlineAvailability(req.params.id, req.tenantId!, availableOnline);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  },
 };

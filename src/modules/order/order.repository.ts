@@ -99,6 +99,12 @@ export const orderRepository = {
     });
   },
 
+  async delete(id: string) {
+    return prisma.order.delete({
+      where: { id },
+    });
+  },
+
   async list(tenantId: string, filters: {
     branchId?: string;
     status?: string;

@@ -28,6 +28,7 @@ const MENU_ITEM_SELECT = {
   calories: true,
   preparationTimeMins: true,
   isAvailable: true,
+  availableOnline: true,
   isFeatured: true,
   sortOrder: true,
   category: {
@@ -100,7 +101,7 @@ export const menuRepository = {
       select: {
         ...CATEGORY_SELECT,
         menuItems: {
-          where: { isAvailable: true },
+          where: { isAvailable: true, availableOnline: true },
           select: { ...MENU_ITEM_SELECT, ...VARIANT_INCLUDE },
           orderBy: { sortOrder: 'asc' },
         },
@@ -216,6 +217,14 @@ export const menuRepository = {
       where: { id },
       data: { isAvailable },
       select: { id: true, isAvailable: true },
+    });
+  },
+
+  async toggleOnlineAvailability(id: string, availableOnline: boolean) {
+    return prisma.menuItem.update({
+      where: { id },
+      data: { availableOnline },
+      select: { id: true, availableOnline: true },
     });
   },
 };

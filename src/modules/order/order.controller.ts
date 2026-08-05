@@ -64,6 +64,15 @@ export const orderController = {
     }
   },
 
+  async deleteOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      await orderService.deleteOrder(req.params.id);
+      sendSuccess(res, { message: 'Order deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { status, notes } = req.body;

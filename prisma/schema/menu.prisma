@@ -33,6 +33,7 @@ model MenuItem {
   calories            Int?
   preparationTimeMins Int            @default(15) @map("preparation_time_mins")
   isAvailable         Boolean        @default(true) @map("is_available")
+  availableOnline     Boolean        @default(true) @map("available_online")
   isFeatured          Boolean        @default(false) @map("is_featured")
   sortOrder           Int            @default(0) @map("sort_order")
   createdAt           DateTime       @default(now()) @map("created_at")
@@ -44,6 +45,7 @@ model MenuItem {
 
   @@index([tenantId, categoryId])
   @@index([tenantId, isAvailable])
+  @@index([tenantId, availableOnline])
   @@map("menu_items")
 }
 
