@@ -1,11 +1,22 @@
 import { NotFoundError, ValidationError } from '../../lib/errors';
 import { Decimal } from '@prisma/client/runtime/library';
 
-export function generateOrderNumber(): string {
-  const prefix = 'ORD';
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}-${timestamp}${random}`;
+export function generateOrderNumber(tenantIdentifier?: string): string {
+  let prefix = 'ORD';
+  
+  if (tenantIdentifier) {
+    // Extract initials from words separated by space, hyphen, or underscore
+    const words = tenantIdentifier.split(/[-_\s]+/);
+    const initials = words.map(w => w.charAt(0)).join('').toUpperCase();
+    if (initials.length > 0) {
+      prefix = initials.substring(0, 5); // limit length just in case
+    }
+  }
+
+  // Generate a random 6-digit number
+  const randomPart = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  return `${prefix}-${randomPart}`;
 }
 
 export interface OrderItemInput {

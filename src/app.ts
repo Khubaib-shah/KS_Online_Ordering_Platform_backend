@@ -20,6 +20,7 @@ import superadminRoutes from './modules/superadmin/superadmin.routes';
 import uploadRoutes from './modules/upload/upload.routes';
 import printerRoutes from './modules/printer/printer.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
+import { tableRouter } from './modules/table/table.route';
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/superadmin', superadminRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/printer', printerRoutes);
+app.use('/api/v1/tables', tableRouter);
 
 // Test Route for triggering a print job to the POS device!
 app.get('/api/v1/test-print', async (req, res) => {

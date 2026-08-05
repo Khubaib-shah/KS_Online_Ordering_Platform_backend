@@ -24,6 +24,7 @@ model Tenant {
   theme          TenantTheme?
   plan           PlatformPlan?   @relation(fields: [planId], references: [id])
   users          User[]
+  tables         Table[]
 
   @@map("tenants")
 }

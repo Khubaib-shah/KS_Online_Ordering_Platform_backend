@@ -128,7 +128,7 @@ export const orderService = {
       // 6. Create order
       const order = await tx.order.create({
         data: {
-          orderNumber: generateOrderNumber(),
+          orderNumber: generateOrderNumber(tenantId),
           tenantId,
           branchId,
           customerId: customer.id,
@@ -247,7 +247,7 @@ export const orderService = {
 
       const order = await tx.order.create({
         data: {
-          orderNumber: data.orderNumber || generateOrderNumber(),
+          orderNumber: data.orderNumber || generateOrderNumber(tenantId),
           tenantId,
           branchId: data.branchId,
           customerId,
@@ -256,7 +256,7 @@ export const orderService = {
           // status: 'PENDING',
           status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING',
           paymentMethod: data.paymentMethod,
-          paymentStatus: 'PAID', // POS orders are paid at counter
+          paymentStatus: data.fulfillmentType === 'DINE_IN' ? 'UNPAID' : 'PAID', // Dine-in orders are paid later
           subtotal,
           taxAmount,
           discountAmount: 0,

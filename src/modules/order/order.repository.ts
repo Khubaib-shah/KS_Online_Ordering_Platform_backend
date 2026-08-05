@@ -182,6 +182,6 @@ export const orderRepository = {
   },
 
   async transaction<T>(fn: (tx: any) => Promise<T>): Promise<T> {
-    return prisma.$transaction(fn);
+    return prisma.$transaction(fn, { maxWait: 10000, timeout: 20000 });
   },
 };
