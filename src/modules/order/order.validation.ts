@@ -41,6 +41,7 @@ export const createPosOrderSchema = z.object({
   customerPhone: z.string().optional(),
   specialInstructions: z.string().optional().nullable(),
   privateKitchenNotes: z.string().optional().nullable(),
+  orderNumber: z.string().optional(),
 });
 
 export const updateOrderStatusSchema = z.object({

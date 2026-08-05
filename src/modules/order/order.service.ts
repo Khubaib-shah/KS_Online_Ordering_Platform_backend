@@ -219,6 +219,7 @@ export const orderService = {
     customerPhone?: string;
     specialInstructions?: string | null;
     privateKitchenNotes?: string | null;
+    orderNumber?: string;
   }) {
     return orderRepository.transaction(async (tx) => {
       const settings = await tx.tenantSettings.findUnique({
@@ -246,7 +247,7 @@ export const orderService = {
 
       const order = await tx.order.create({
         data: {
-          orderNumber: generateOrderNumber(),
+          orderNumber: data.orderNumber || generateOrderNumber(),
           tenantId,
           branchId: data.branchId,
           customerId,
