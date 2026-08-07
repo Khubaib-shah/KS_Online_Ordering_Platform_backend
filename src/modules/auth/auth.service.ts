@@ -58,6 +58,32 @@ export const authService = {
       expiresIn: env.JWT_EXPIRES_IN as any,
     });
 
+    let activeShift = null;
+    if (user.tenantId && user.globalRole !== 'SUPER_ADMIN') {
+      // Close any existing open shifts
+      await prisma.cashierShift.updateMany({
+        where: {
+          userId: user.id,
+          status: 'OPEN',
+        },
+        data: {
+          status: 'CLOSED',
+          endTime: new Date(),
+        },
+      });
+
+      // Open a new shift
+      activeShift = await prisma.cashierShift.create({
+        data: {
+          userId: user.id,
+          tenantId: user.tenantId,
+          branchId: user.staffProfile?.branchId,
+          status: 'OPEN',
+          startTime: new Date(),
+        },
+      });
+    }
+
     return {
       token,
       user: {
@@ -69,6 +95,7 @@ export const authService = {
         tenantId: user.tenantId,
         tenant: user.tenant ? { slug: user.tenant.slug, name: user.tenant.name } : null,
         staffProfile: user.staffProfile,
+        activeShift: activeShift,
       },
     };
   },
@@ -99,6 +126,28 @@ export const authService = {
     });
 
     if (!user) throw new NotFoundError('User', userId);
-    return user;
+
+    const activeShift = await prisma.cashierShift.findFirst({
+      where: {
+        userId,
+        status: 'OPEN',
+      },
+      orderBy: { startTime: 'desc' },
+    });
+
+    return { ...user, activeShift };
+  },
+
+  async logout(userId: string) {
+    await prisma.cashierShift.updateMany({
+      where: {
+        userId,
+        status: 'OPEN',
+      },
+      data: {
+        status: 'CLOSED',
+        endTime: new Date(),
+      },
+    });
   },
 };

@@ -11,6 +11,7 @@ model User {
   updatedAt      DateTime        @updatedAt @map("updated_at")
   staffProfile   StaffProfile?
   supportTickets SupportTicket[]
+  shifts         CashierShift[]
   tenant         Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
@@ -54,4 +55,25 @@ enum PermissionLevel {
   NONE
   READ
   MANAGE
+}
+
+model CashierShift {
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  branchId    String?   @map("branch_id")
+  userId      String    @map("user_id")
+  startTime   DateTime  @default(now()) @map("start_time")
+  endTime     DateTime? @map("end_time")
+  status      String    @default("OPEN") @db.VarChar(50)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch      Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([branchId])
+  @@index([userId])
+  @@map("cashier_shifts")
 }

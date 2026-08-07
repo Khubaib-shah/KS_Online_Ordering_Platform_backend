@@ -4,6 +4,7 @@ export const createBranchSchema = z.object({
   name: z.string().min(1).max(255),
   address: z.string().min(1),
   phone: z.string().max(50).optional(),
+  mapsUrl: z.string().optional(),
   openingTime: z.string().optional(),
   closingTime: z.string().optional(),
 });

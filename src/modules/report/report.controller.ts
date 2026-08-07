@@ -7,7 +7,7 @@ export const reportController = {
   async getSummary(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { period, branchId } = req.query as { period: string; branchId?: string };
-      const summary = await reportService.getSummary(req.tenantId!, period, branchId);
+      const summary = await reportService.getSummary(req.tenantId!, period, branchId, req.user?.userId);
       sendSuccess(res, summary);
     } catch (error) {
       next(error);

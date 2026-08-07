@@ -21,6 +21,7 @@ import uploadRoutes from './modules/upload/upload.routes';
 import printerRoutes from './modules/printer/printer.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import { tableRouter } from './modules/table/table.route';
+import { locationRoutes } from './modules/location/location.routes';
 
 const app = express();
 
@@ -58,6 +59,9 @@ app.use('/api/v1', promotionRoutes);
 
 // Branches: /branches (admin) + /website/delivery-zones (public)
 app.use('/api/v1', branchRoutes);
+
+// Locations: /location/cities (public)
+app.use('/api/v1/location', locationRoutes);
 
 // Admin-only modules
 app.use('/api/v1/customers', customerRoutes);

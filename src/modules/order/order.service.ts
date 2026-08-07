@@ -23,10 +23,24 @@ export const orderService = {
     deliveryInstructions?: string | null;
     specialInstructions?: string | null;
     promoCode?: string | null;
+    areaId?: string | null;
   }) {
     return orderRepository.transaction(async (tx) => {
-      // 1. Resolve branch (default to first active branch if not specified)
+      // 1. Resolve branch
       let branchId = data.branchId;
+      
+      if (!branchId && data.fulfillmentType === 'DELIVERY' && data.areaId) {
+        const coverage = await tx.branchCoverage.findFirst({
+          where: {
+            areaId: data.areaId,
+            branch: { tenantId, deliveryEnabled: true, isActive: true }
+          },
+          select: { branchId: true }
+        });
+        if (!coverage) throw new NotFoundError('Delivery coverage for selected area');
+        branchId = coverage.branchId;
+      }
+
       if (!branchId) {
         const defaultBranch = await tx.branch.findFirst({
           where: { tenantId, isActive: true },
@@ -52,13 +66,17 @@ export const orderService = {
       let discountAmount = new Decimal(0);
 
       // Delivery fee from zone (simplified — uses first matching zone or default 0)
-      if (data.fulfillmentType === 'DELIVERY') {
-        const zone = await tx.deliveryZone.findFirst({
-          where: { branchId, isActive: true },
-          select: { deliveryFee: true },
-          orderBy: { deliveryFee: 'asc' },
+      if (data.fulfillmentType === 'DELIVERY' && data.areaId) {
+        const coverage = await tx.branchCoverage.findUnique({
+          where: { branchId_areaId: { branchId, areaId: data.areaId } },
+          select: { deliveryFee: true, minimumOrder: true },
         });
-        if (zone) deliveryFee = new Decimal(zone.deliveryFee.toString());
+        if (coverage) {
+          deliveryFee = new Decimal(coverage.deliveryFee.toString());
+          if (subtotal.lt(coverage.minimumOrder)) {
+            throw new Error(`Minimum order amount is ${coverage.minimumOrder}`);
+          }
+        }
       }
 
       // Promo code validation
@@ -146,6 +164,7 @@ export const orderService = {
           nearestLandmark: data.nearestLandmark,
           deliveryInstructions: data.deliveryInstructions,
           specialInstructions: data.specialInstructions,
+          areaId: data.areaId,
           statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString() }],
           items: { create: orderItems },
         },

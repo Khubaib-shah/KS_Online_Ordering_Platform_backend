@@ -27,6 +27,7 @@ export const createWebsiteOrderSchema = z.object({
   deliveryInstructions: z.string().optional().nullable(),
   specialInstructions: z.string().optional().nullable(),
   promoCode: z.string().optional().nullable(),
+  areaId: z.string().uuid().optional().nullable(),
 });
 
 export const createPosOrderSchema = z.object({

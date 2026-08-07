@@ -1,31 +1,42 @@
 model Tenant {
-  id             String          @id @default(uuid())
-  name           String          @db.VarChar(255)
-  slug           String          @unique @db.VarChar(100)
-  customDomain   String?         @unique @map("custom_domain") @db.VarChar(255)
-  businessType   BusinessType    @map("business_type")
-  planId         String?         @map("plan_id")
-  status         TenantStatus    @default(ACTIVE)
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  branches       Branch[]
-  categories     Category[]
-  customers      Customer[]
-  menuItems      MenuItem[]
-  orders         Order[]
-  posDevices     PosDevice[]
-  printHistory   PrintHistory[]
-  printJobs      PrintJob[]
-  printers       Printer[]
-  promotions     Promotion[]
-  supportTickets SupportTicket[]
-  content        TenantContent?
-  settings       TenantSettings?
-  theme          TenantTheme?
-  plan           PlatformPlan?   @relation(fields: [planId], references: [id])
-  users          User[]
-  tables         Table[]
+  id               String          @id @default(uuid())
+  name             String          @db.VarChar(255)
+  slug             String          @unique @db.VarChar(100)
+  customDomain     String?         @unique @map("custom_domain") @db.VarChar(255)
+  domainVerified   Boolean         @default(false) @map("domain_verified")
+  businessType     BusinessType    @map("business_type")
+  planId           String?         @map("plan_id")
+  status           TenantStatus    @default(ACTIVE)
 
+  // Locale / i18n
+  defaultLocale    String          @default("en") @map("default_locale") @db.VarChar(10)
+  supportedLocales String[]        @default(["en"]) @map("supported_locales")
+  isRtl            Boolean         @default(false) @map("is_rtl")
+
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+  branches         Branch[]
+  categories       Category[]
+  customers        Customer[]
+  menuItems        MenuItem[]
+  orders           Order[]
+  posDevices       PosDevice[]
+  printHistory     PrintHistory[]
+  printJobs        PrintJob[]
+  printers         Printer[]
+  promotions       Promotion[]
+  supportTickets   SupportTicket[]
+  content          TenantContent?
+  settings         TenantSettings?
+  theme            TenantTheme?
+  plan             PlatformPlan?   @relation(fields: [planId], references: [id])
+  users            User[]
+  tables           Table[]
+  cities           City[]
+  cashierShifts    CashierShift[]
+
+  @@index([customDomain])
+  @@index([slug])
   @@map("tenants")
 }
 
@@ -80,20 +91,25 @@ model TenantTheme {
 }
 
 model TenantContent {
-  id               String   @id @default(uuid())
-  tenantId         String   @unique @map("tenant_id")
-  announcementText String?  @map("announcement_text")
-  footerConfig     Json?    @map("footer_config")
-  copyConfig       Json?    @map("copy_config")
-  heroSlides       Json?    @map("hero_slides")
-  faqs             Json?
-  privacyPolicy    Json?    @map("privacy_policy")
-  seoTitle         String?  @map("seo_title") @db.VarChar(255)
-  seoDescription   String?  @map("seo_description")
-  activePromo      Json?    @map("active_promo")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                String   @id @default(uuid())
+  tenantId          String   @unique @map("tenant_id")
+  announcementText  String?  @map("announcement_text")
+  footerConfig      Json?    @map("footer_config")
+  copyConfig        Json?    @map("copy_config")
+  heroSlides        Json?    @map("hero_slides")
+  faqs              Json?
+  privacyPolicy     Json?    @map("privacy_policy")
+  seoTitle          String?  @map("seo_title") @db.VarChar(255)
+  seoDescription    String?  @map("seo_description")
+  seoKeywords       String[] @default([]) @map("seo_keywords")
+  ogImageUrl        String?  @map("og_image_url")
+  gaMeasurementId   String?  @map("ga_measurement_id") @db.VarChar(50)
+  gscVerification   String?  @map("gsc_verification") @db.VarChar(100)
+  noIndex           Boolean  @default(false) @map("no_index")
+  activePromo       Json?    @map("active_promo")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("tenant_content")
 }

@@ -21,14 +21,31 @@ function getPeriodStart(period: string): Date {
 }
 
 export const reportService = {
-  async getSummary(tenantId: string, period: string, branchId?: string) {
-    const periodStart = getPeriodStart(period);
+  async getSummary(tenantId: string, period: string, branchId?: string, userId?: string) {
+    let periodStart = getPeriodStart(period);
+    let periodEnd = undefined;
+
+    if (period === 'shift' && userId) {
+      const activeShift = await prisma.cashierShift.findFirst({
+        where: { userId },
+        orderBy: { startTime: 'desc' }
+      });
+      if (activeShift) {
+        periodStart = activeShift.startTime;
+        if (activeShift.endTime) {
+          periodEnd = activeShift.endTime;
+        }
+      }
+    }
 
     const where: any = {
       tenantId,
       createdAt: { gte: periodStart },
       status: { notIn: ['CANCELLED'] },
     };
+    if (periodEnd) {
+      where.createdAt.lte = periodEnd;
+    }
     if (branchId) where.branchId = branchId;
 
     // Aggregate queries

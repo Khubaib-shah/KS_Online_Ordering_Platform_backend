@@ -39,14 +39,21 @@ export const authController = {
     }
   },
 
-  async logout(_req: Request, res: Response): Promise<void> {
-    // Clear the auth cookie
-    res.clearCookie('indolj_token', {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
-      path: '/',
-    });
-    sendSuccess(res, { message: 'Logged out successfully' });
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      if (req.user) {
+        await authService.logout(req.user.userId);
+      }
+      // Clear the auth cookie
+      res.clearCookie('indolj_token', {
+        httpOnly: true,
+        secure: env.NODE_ENV === 'production',
+        sameSite: env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
+        path: '/',
+      });
+      sendSuccess(res, { message: 'Logged out successfully' });
+    } catch (error) {
+      next(error);
+    }
   },
 };

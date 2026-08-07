@@ -13,7 +13,7 @@ export const branchRepository = {
         isActive: true,
         openingTime: true,
         closingTime: true,
-        _count: { select: { orders: true, staffProfiles: true, deliveryZones: true } },
+        _count: { select: { orders: true, staffProfiles: true, branchCoverages: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -42,14 +42,14 @@ export const branchRepository = {
   },
 
   async findZonesByBranch(branchId: string) {
-    return prisma.deliveryZone.findMany({
+    return prisma.branchCoverage.findMany({
       where: { branchId },
-      orderBy: { areaName: 'asc' },
+      include: { area: { include: { zone: true } } },
     });
   },
 
   async createZone(branchId: string, data: any) {
-    return prisma.deliveryZone.create({
+    return prisma.branchCoverage.create({
       data: {
         branchId,
         ...data,
@@ -58,14 +58,14 @@ export const branchRepository = {
   },
 
   async updateZone(id: string, data: any) {
-    return prisma.deliveryZone.update({
+    return prisma.branchCoverage.update({
       where: { id },
       data,
     });
   },
 
   async deleteZone(id: string) {
-    return prisma.deliveryZone.delete({
+    return prisma.branchCoverage.delete({
       where: { id },
     });
   },
@@ -76,10 +76,8 @@ export const branchRepository = {
       select: {
         id: true,
         name: true,
-        deliveryZones: {
-          where: { isActive: true },
-          select: { id: true, areaName: true, city: true, deliveryFee: true, estimatedMinutes: true },
-          orderBy: { areaName: 'asc' },
+        branchCoverages: {
+          select: { id: true, areaId: true, deliveryFee: true, estimatedMinutes: true, area: { select: { name: true } } },
         },
       },
     });

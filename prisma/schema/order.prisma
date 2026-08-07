@@ -21,12 +21,14 @@ model Order {
   specialInstructions  String?         @map("special_instructions")
   privateKitchenNotes  String?         @map("private_kitchen_notes")
   statusTimeline       Json?           @map("status_timeline")
+  areaId               String?         @map("area_id")
   createdAt            DateTime        @default(now()) @map("created_at")
   updatedAt            DateTime        @updatedAt @map("updated_at")
   items                OrderItem[]
   branch               Branch          @relation(fields: [branchId], references: [id])
   customer             Customer?       @relation(fields: [customerId], references: [id])
   tenant               Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  area                 Area?           @relation(fields: [areaId], references: [id])
 
   @@index([orderNumber])
   @@index([tenantId, branchId, status])

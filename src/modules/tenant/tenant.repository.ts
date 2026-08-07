@@ -9,8 +9,12 @@ const TENANT_PUBLIC_SELECT = {
   name: true,
   slug: true,
   customDomain: true,
+  domainVerified: true,
   businessType: true,
   status: true,
+  defaultLocale: true,
+  supportedLocales: true,
+  isRtl: true,
   createdAt: true,
 };
 
@@ -58,6 +62,11 @@ const CONTENT_SELECT = {
   privacyPolicy: true,
   seoTitle: true,
   seoDescription: true,
+  seoKeywords: true,
+  ogImageUrl: true,
+  gaMeasurementId: true,
+  gscVerification: true,
+  noIndex: true,
   activePromo: true,
 };
 
@@ -76,6 +85,16 @@ const TENANT_COMPLETE_SELECT = {
           designation: true,
         },
       },
+    },
+  },
+  branches: {
+    where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      phone: true,
+      mapsUrl: true,
     },
   },
 };
