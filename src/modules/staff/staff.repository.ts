@@ -13,6 +13,8 @@ export const STAFF_SELECT = {
   permissionMenu: true,
   permissionReports: true,
   permissionSettings: true,
+  roleId: true,
+  role: { select: { id: true, name: true, permissions: true } },
 };
 
 export const staffRepository = {

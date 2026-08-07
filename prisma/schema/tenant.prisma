@@ -34,6 +34,7 @@ model Tenant {
   tables           Table[]
   cities           City[]
   cashierShifts    CashierShift[]
+  roles            Role[]
 
   @@index([customDomain])
   @@index([slug])

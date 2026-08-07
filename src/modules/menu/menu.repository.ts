@@ -9,7 +9,9 @@ const CATEGORY_SELECT = {
   imageUrl: true,
   cardStyle: true,
   sortOrder: true,
+  posSortOrder: true,
   isActive: true,
+  availableOnline: true,
 };
 
 const MENU_ITEM_SELECT = {
@@ -97,7 +99,7 @@ export const menuRepository = {
   // ── Menu Items ──
   async getPublicCatalog(tenantId: string) {
     const categories = await prisma.category.findMany({
-      where: { tenantId, isActive: true },
+      where: { tenantId, isActive: true, availableOnline: true },
       select: {
         ...CATEGORY_SELECT,
         menuItems: {

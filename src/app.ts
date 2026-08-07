@@ -22,6 +22,7 @@ import printerRoutes from './modules/printer/printer.routes';
 import analyticsRoutes from './modules/analytics/analytics.routes';
 import { tableRouter } from './modules/table/table.route';
 import { locationRoutes } from './modules/location/location.routes';
+import roleRoutes from './modules/role/role.routes';
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use('/api/v1/location', locationRoutes);
 // Admin-only modules
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/team', staffRoutes);
+app.use('/api/v1/roles', roleRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/superadmin', superadminRoutes);

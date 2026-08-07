@@ -3,7 +3,8 @@ import { z } from 'zod';
 export const inviteStaffSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).max(255),
-  designation: z.enum(['OWNER', 'BRANCH_MANAGER', 'CASHIER', 'KITCHEN_STAFF', 'RIDER', 'GENERAL_STAFF']),
+  designation: z.enum(['OWNER', 'BRANCH_MANAGER', 'CASHIER', 'KITCHEN_STAFF', 'RIDER', 'GENERAL_STAFF']).optional(),
+  roleId: z.string().uuid().optional().nullable(),
   branchId: z.string().uuid().optional(),
   password: z.string().min(8),
   permissionOrders: z.enum(['NONE', 'READ', 'MANAGE']).optional(),
@@ -14,6 +15,7 @@ export const inviteStaffSchema = z.object({
 
 export const updatePermissionsSchema = z.object({
   designation: z.enum(['OWNER', 'BRANCH_MANAGER', 'CASHIER', 'KITCHEN_STAFF', 'RIDER', 'GENERAL_STAFF']).optional(),
+  roleId: z.string().uuid().optional().nullable(),
   branchId: z.string().uuid().optional().nullable(),
   permissionOrders: z.enum(['NONE', 'READ', 'MANAGE']).optional(),
   permissionMenu: z.enum(['NONE', 'READ', 'MANAGE']).optional(),

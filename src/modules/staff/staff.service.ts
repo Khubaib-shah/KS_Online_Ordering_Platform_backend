@@ -20,7 +20,8 @@ export const staffService = {
     };
 
     const staffProfileData = {
-      designation,
+      designation: designation || 'GENERAL_STAFF',
+      roleId: data.roleId || null,
       branchId,
       permissionOrders: perms.permissionOrders || 'MANAGE',
       permissionMenu: perms.permissionMenu || 'READ',

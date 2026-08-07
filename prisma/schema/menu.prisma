@@ -5,14 +5,17 @@ model Category {
   slug      String     @db.VarChar(255)
   imageUrl  Json?      @map("image_url")
   cardStyle String?    @map("card_style") @db.VarChar(20)
-  sortOrder Int        @default(0) @map("sort_order")
-  isActive  Boolean    @default(true) @map("is_active")
+  sortOrder    Int        @default(0) @map("sort_order")
+  posSortOrder Int        @default(0) @map("pos_sort_order")
+  isActive     Boolean    @default(true) @map("is_active")
+  availableOnline Boolean @default(true) @map("available_online")
   createdAt DateTime   @default(now()) @map("created_at")
   updatedAt DateTime   @updatedAt @map("updated_at")
   tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   menuItems MenuItem[]
 
   @@index([tenantId, sortOrder])
+  @@index([tenantId, availableOnline])
   @@map("categories")
 }
 

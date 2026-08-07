@@ -27,13 +27,16 @@ model StaffProfile {
   permissionMenu     PermissionLevel @default(READ) @map("permission_menu")
   permissionReports  PermissionLevel @default(NONE) @map("permission_reports")
   permissionSettings PermissionLevel @default(NONE) @map("permission_settings")
+  roleId             String?         @map("role_id")
   createdAt          DateTime        @default(now()) @map("created_at")
   updatedAt          DateTime        @updatedAt @map("updated_at")
   branch             Branch?         @relation(fields: [branchId], references: [id])
   user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role               Role?           @relation(fields: [roleId], references: [id])
 
   @@index([branchId])
   @@index([userId])
+  @@index([roleId])
   @@map("staff_profiles")
 }
 
@@ -76,4 +79,20 @@ model CashierShift {
   @@index([branchId])
   @@index([userId])
   @@map("cashier_shifts")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  permissions Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staffProfiles StaffProfile[]
+
+  @@index([tenantId])
+  @@map("roles")
 }

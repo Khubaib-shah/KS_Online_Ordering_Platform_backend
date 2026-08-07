@@ -9,7 +9,9 @@ export const createCategorySchema = z.object({
   imageUrl: z.string().url().optional().nullable(),
   cardStyle: z.enum(['default', 'minimal', 'list', 'list-alt']).optional().nullable(),
   sortOrder: z.number().int().optional(),
+  posSortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
+  availableOnline: z.boolean().optional(),
 });
 
 export const updateCategorySchema = createCategorySchema.partial();
