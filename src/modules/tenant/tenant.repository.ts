@@ -82,7 +82,8 @@ const TENANT_COMPLETE_SELECT = {
       globalRole: true,
       staffProfile: {
         select: {
-          designation: true,
+          isOwner: true,
+          role: true,
         },
       },
     },

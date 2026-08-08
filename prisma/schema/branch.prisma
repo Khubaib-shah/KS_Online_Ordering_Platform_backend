@@ -14,6 +14,7 @@ model Branch {
   isActive        Boolean          @default(true) @map("is_active")
   openingTime     String?          @map("opening_time") @db.VarChar(10)
   closingTime     String?          @map("closing_time") @db.VarChar(10)
+  timezone        String           @default("UTC") @db.VarChar(100)
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
   

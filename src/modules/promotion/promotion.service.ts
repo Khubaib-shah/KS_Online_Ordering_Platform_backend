@@ -55,11 +55,11 @@ export const promotionService = {
     return promotionRepository.create(tenantId, data);
   },
 
-  async update(id: string, data: any) {
-    return promotionRepository.update(id, data);
+  async update(id: string, tenantId: string, data: any) {
+    return promotionRepository.update(id, tenantId, data);
   },
 
-  async delete(id: string) {
-    return promotionRepository.delete(id);
+  async delete(id: string, tenantId: string) {
+    return promotionRepository.delete(id, tenantId);
   },
 };

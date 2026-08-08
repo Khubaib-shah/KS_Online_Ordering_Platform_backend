@@ -6,13 +6,9 @@ export const STAFF_SELECT = {
   user: {
     select: { id: true, email: true, name: true, avatarUrl: true, isActive: true },
   },
-  designation: true,
+  isOwner: true,
   branchId: true,
   branch: { select: { id: true, name: true } },
-  permissionOrders: true,
-  permissionMenu: true,
-  permissionReports: true,
-  permissionSettings: true,
   roleId: true,
   role: { select: { id: true, name: true, permissions: true } },
 };
@@ -49,7 +45,9 @@ export const staffRepository = {
     });
   },
 
-  async updatePermissions(id: string, data: any) {
+  async updatePermissions(id: string, tenantId: string, data: any) {
+    const existing = await prisma.staffProfile.findFirst({ where: { id, user: { tenantId } } });
+    if (!existing) throw new Error('Staff profile not found');
     return prisma.staffProfile.update({
       where: { id },
       data,
@@ -57,7 +55,9 @@ export const staffRepository = {
     });
   },
 
-  async deactivate(userId: string) {
+  async deactivate(userId: string, tenantId: string) {
+    const existing = await prisma.user.findFirst({ where: { id: userId, tenantId } });
+    if (!existing) throw new Error('User not found');
     return prisma.user.update({
       where: { id: userId },
       data: { isActive: false },

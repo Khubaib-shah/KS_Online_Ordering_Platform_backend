@@ -5,16 +5,20 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/database';
 import { sendError } from '../lib/api-response';
 
-type PermissionModule = 'orders' | 'menu' | 'reports' | 'settings';
-type RequiredLevel = 'READ' | 'MANAGE';
+export type PermissionModule = 'orders' | 'menu' | 'reports' | 'settings' | 'staff' | 'customers' | 'branches' | 'pos';
+export type RequiredLevel = 'READ' | 'MANAGE' | 'USE' | 'BRANCH_ONLY' | 'SELF_ONLY' | 'ALL';
 
-const LEVEL_HIERARCHY: Record<string, number> = {
-  NONE: 0,
-  READ: 1,
-  MANAGE: 2,
+// Maps requested minimum level to an array of allowed JSON values (in uppercase)
+const LEVEL_MAP: Record<RequiredLevel, string[]> = {
+  READ: ['READ', 'MANAGE', 'BRANCH_ONLY', 'SELF_ONLY', 'ALL'],
+  MANAGE: ['MANAGE', 'ALL'],
+  USE: ['USE', 'MANAGE'],
+  BRANCH_ONLY: ['BRANCH_ONLY', 'ALL', 'MANAGE'],
+  SELF_ONLY: ['SELF_ONLY', 'BRANCH_ONLY', 'ALL', 'MANAGE'],
+  ALL: ['ALL', 'MANAGE']
 };
 
-export function requirePermission(module: PermissionModule, level: RequiredLevel) {
+export function requirePermission(module: PermissionModule, level: RequiredLevel = 'READ') {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
@@ -29,12 +33,7 @@ export function requirePermission(module: PermissionModule, level: RequiredLevel
 
       const staffProfile = await prisma.staffProfile.findUnique({
         where: { userId: req.user.userId },
-        select: {
-          permissionOrders: true,
-          permissionMenu: true,
-          permissionReports: true,
-          permissionSettings: true,
-        },
+        include: { role: true },
       });
 
       if (!staffProfile) {
@@ -42,15 +41,19 @@ export function requirePermission(module: PermissionModule, level: RequiredLevel
         return;
       }
 
-      const fieldMap: Record<PermissionModule, string> = {
-        orders: staffProfile.permissionOrders,
-        menu: staffProfile.permissionMenu,
-        reports: staffProfile.permissionReports,
-        settings: staffProfile.permissionSettings,
-      };
+      if (staffProfile.isOwner) {
+        return next();
+      }
 
-      const userLevel = fieldMap[module];
-      if (LEVEL_HIERARCHY[userLevel] < LEVEL_HIERARCHY[level]) {
+      if (!staffProfile.role || !staffProfile.role.permissions) {
+         sendError(res, 403, 'INSUFFICIENT_PERMISSION', `No role or permissions assigned`);
+         return;
+      }
+
+      const perms = staffProfile.role.permissions as Record<string, string>;
+      const userLevel = (perms[module] || 'NONE').toUpperCase();
+
+      if (userLevel === 'NONE' || !LEVEL_MAP[level].includes(userLevel)) {
         sendError(res, 403, 'INSUFFICIENT_PERMISSION', `Requires ${level} access on ${module}`);
         return;
       }

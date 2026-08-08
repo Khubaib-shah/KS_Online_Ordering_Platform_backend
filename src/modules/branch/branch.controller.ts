@@ -24,7 +24,7 @@ export const branchController = {
 
   async updateBranch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const branch = await branchService.update(req.params.id, req.body);
+      const branch = await branchService.update(req.params.id, req.tenantId!, req.body);
       sendSuccess(res, branch);
     } catch (error) {
       next(error);
@@ -33,7 +33,7 @@ export const branchController = {
 
   async deleteBranch(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await branchService.delete(req.params.id);
+      await branchService.delete(req.params.id, req.tenantId!);
       sendSuccess(res, { deleted: true });
     } catch (error) {
       next(error);
@@ -60,7 +60,7 @@ export const branchController = {
 
   async updateZone(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const zone = await branchService.updateZone(req.params.id, req.body);
+      const zone = await branchService.updateZone(req.params.id, req.tenantId!, req.body);
       sendSuccess(res, zone);
     } catch (error) {
       next(error);
@@ -69,7 +69,7 @@ export const branchController = {
 
   async deleteZone(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await branchService.deleteZone(req.params.id);
+      await branchService.deleteZone(req.params.id, req.tenantId!);
       sendSuccess(res, { deleted: true });
     } catch (error) {
       next(error);

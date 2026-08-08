@@ -30,13 +30,13 @@ export const menuService = {
   },
 
   async updateCategory(id: string, tenantId: string, data: any) {
-    const result = await menuRepository.updateCategory(id, data);
+    const result = await menuRepository.updateCategory(id, tenantId, data);
     await cacheInvalidateByTag(`catalog:${tenantId}`);
     return result;
   },
 
   async deleteCategory(id: string, tenantId: string) {
-    await menuRepository.deleteCategory(id);
+    await menuRepository.deleteCategory(id, tenantId);
     await cacheInvalidateByTag(`catalog:${tenantId}`);
   },
 
@@ -46,8 +46,8 @@ export const menuService = {
     return menuRepository.listMenuItems(tenantId, filters, skip, limit);
   },
 
-  async getMenuItemById(id: string) {
-    const item = await menuRepository.getMenuItemById(id);
+  async getMenuItemById(id: string, tenantId: string) {
+    const item = await menuRepository.getMenuItemById(id, tenantId);
     if (!item) throw new NotFoundError('Menu item', id);
     return item;
   },
@@ -59,24 +59,24 @@ export const menuService = {
   },
 
   async updateMenuItem(id: string, tenantId: string, data: any) {
-    const result = await menuRepository.updateMenuItem(id, data);
+    const result = await menuRepository.updateMenuItem(id, tenantId, data);
     await cacheInvalidateByTag(`catalog:${tenantId}`);
     return result;
   },
 
   async deleteMenuItem(id: string, tenantId: string) {
-    await menuRepository.deleteMenuItem(id);
+    await menuRepository.deleteMenuItem(id, tenantId);
     await cacheInvalidateByTag(`catalog:${tenantId}`);
   },
 
   async toggleAvailability(id: string, tenantId: string, isAvailable: boolean) {
-    const result = await menuRepository.toggleAvailability(id, isAvailable);
+    const result = await menuRepository.toggleAvailability(id, tenantId, isAvailable);
     await cacheInvalidateByTag(`catalog:${tenantId}`);
     return result;
   },
 
   async toggleOnlineAvailability(id: string, tenantId: string, availableOnline: boolean) {
-    const result = await menuRepository.toggleOnlineAvailability(id, availableOnline);
+    const result = await menuRepository.toggleOnlineAvailability(id, tenantId, availableOnline);
     await cacheInvalidateByTag(`catalog:${tenantId}`);
     return result;
   },

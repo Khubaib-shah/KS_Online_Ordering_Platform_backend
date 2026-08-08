@@ -85,21 +85,23 @@ export const orderRepository = {
     });
   },
 
-  async findById(id: string) {
-    return prisma.order.findUnique({
-      where: { id },
+  async findById(id: string, tenantId: string) {
+    return prisma.order.findFirst({
+      where: { id, tenantId },
       select: ORDER_SELECT,
     });
   },
 
-  async findByOrderNumber(orderNumber: string) {
-    return prisma.order.findUnique({
-      where: { orderNumber },
+  async findByOrderNumber(orderNumber: string, tenantId: string) {
+    return prisma.order.findFirst({
+      where: { orderNumber, tenantId },
       select: ORDER_SELECT,
     });
   },
 
-  async delete(id: string) {
+  async delete(id: string, tenantId: string) {
+    const existing = await prisma.order.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Order not found');
     return prisma.order.delete({
       where: { id },
     });
@@ -112,6 +114,8 @@ export const orderRepository = {
     search?: string;
     startDate?: string;
     endDate?: string;
+    cashierId?: string;
+    createdById?: string;
   }, skip: number, take: number) {
     const where: any = { tenantId };
     if (filters.branchId) where.branchId = filters.branchId;
@@ -133,6 +137,8 @@ export const orderRepository = {
       if (filters.startDate) where.createdAt.gte = new Date(filters.startDate);
       if (filters.endDate) where.createdAt.lte = new Date(filters.endDate);
     }
+    if (filters.cashierId) where.createdById = filters.cashierId;
+    if (filters.createdById) where.createdById = filters.createdById;
 
     const whereForCounts = { ...where };
     delete whereForCounts.status;
@@ -165,7 +171,9 @@ export const orderRepository = {
     return { orders, total, statusCounts };
   },
 
-  async updateStatus(id: string, status: string, timeline: any[]) {
+  async updateStatus(id: string, tenantId: string, status: string, timeline: any[]) {
+    const existing = await prisma.order.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Order not found');
     return prisma.order.update({
       where: { id },
       data: { status: status as any, statusTimeline: timeline },

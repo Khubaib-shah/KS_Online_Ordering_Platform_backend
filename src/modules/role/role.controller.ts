@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { roleService } from './role.service';
+import { createRoleSchema, updateRoleSchema } from './role.validation';
 
 export const roleController = {
   async createRole(req: Request, res: Response, next: NextFunction) {
@@ -9,7 +10,8 @@ export const roleController = {
         return res.status(403).json({ success: false, error: { message: 'Tenant required' } });
       }
 
-      const role = await roleService.createRole(tenantId, req.body);
+      const validatedData = createRoleSchema.parse(req.body);
+      const role = await roleService.createRole(tenantId, validatedData);
       res.status(201).json({ success: true, data: role });
     } catch (error) {
       next(error);
@@ -56,7 +58,8 @@ export const roleController = {
       }
 
       const roleId = req.params.id as string;
-      const role = await roleService.updateRole(roleId, tenantId, req.body);
+      const validatedData = updateRoleSchema.parse(req.body);
+      const role = await roleService.updateRole(roleId, tenantId, validatedData);
       res.json({ success: true, data: role });
     } catch (error) {
       next(error);

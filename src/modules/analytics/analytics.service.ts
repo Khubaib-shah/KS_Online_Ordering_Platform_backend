@@ -6,26 +6,18 @@ export function getAnalyticsPointsFromOrders(orders: any[], filter: string, metr
   const now = new Date();
 
   if (filter === 'today' || filter === 'yesterday') {
-    const labels = ['8AM', '11AM', '1PM', '3PM', '5PM', '7PM', '9PM'];
-    const values = [0, 0, 0, 0, 0, 0, 0];
+    const labels = ['12AM', '2AM', '4AM', '6AM', '8AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM'];
+    const values = new Array(12).fill(0);
 
     orders.forEach(o => {
       const date = new Date(o.createdAt || o.placedAt);
-      const hour = date.getHours();
-      let slotIdx = 0;
-      if (hour >= 8 && hour < 11) slotIdx = 0;
-      else if (hour >= 11 && hour < 13) slotIdx = 1;
-      else if (hour >= 13 && hour < 15) slotIdx = 2;
-      else if (hour >= 15 && hour < 17) slotIdx = 3;
-      else if (hour >= 17 && hour < 19) slotIdx = 4;
-      else if (hour >= 19 && hour < 21) slotIdx = 5;
-      else if (hour >= 21 || hour < 8) slotIdx = 6;
-
+      const hour = date.getHours(); // 0-23
+      const slotIdx = Math.floor(hour / 2); // 0-11
       const val = metric === 'revenue' ? (o.status !== 'CANCELLED' ? (o.grandTotal ? Number(o.grandTotal) : 0) : 0) : 1;
       values[slotIdx] += val;
     });
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 12; i++) {
       points.push({ label: labels[i], value: values[i] });
     }
   } else if (filter === '7d') {
@@ -97,70 +89,51 @@ export function getAnalyticsPointsFromOrders(orders: any[], filter: string, metr
   }));
 }
 
-function getPeriodDates(filter: string) {
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startOfYesterday = new Date(startOfToday.getTime());
-  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-  const endOfYesterday = new Date(startOfToday.getTime() - 1);
-
-  let currentStart = new Date();
-  let currentEnd = new Date();
-  let prevStart = new Date();
-  let prevEnd = new Date();
-
-  if (filter === 'today') {
-    currentStart = startOfToday;
-    currentEnd = now;
-    prevStart = startOfYesterday;
-    prevEnd = startOfToday;
-  } else if (filter === 'yesterday') {
-    currentStart = startOfYesterday;
-    currentEnd = endOfYesterday;
-    prevStart = new Date(startOfYesterday.getTime());
-    prevStart.setDate(prevStart.getDate() - 1);
-    prevEnd = startOfYesterday;
-  } else if (filter === '7d') {
-    currentStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    currentEnd = now;
-    prevStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    prevEnd = currentStart;
-  } else if (filter === '30d') {
-    currentStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    currentEnd = now;
-    prevStart = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-    prevEnd = currentStart;
-  } else if (filter === 'month') {
-    currentStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    currentEnd = now;
-    prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    prevEnd = currentStart;
-  } else if (filter === 'year') {
-    currentStart = new Date(now.getFullYear(), 0, 1);
-    currentEnd = now;
-    prevStart = new Date(now.getFullYear() - 1, 0, 1);
-    prevEnd = currentStart;
-  } else {
-    currentStart = startOfToday;
-    currentEnd = now;
-    prevStart = startOfYesterday;
-    prevEnd = startOfToday;
-  }
-
-  return { currentStart, currentEnd, prevStart, prevEnd };
-}
+import { resolveReportingPeriod, buildWhereClauseForIntervals, ReportFilter } from '../../lib/reporting-period';
 
 export const analyticsService = {
-  async getDashboardStats(tenantId: string, filter: string, branchId?: string) {
-    const { currentStart, currentEnd, prevStart, prevEnd } = getPeriodDates(filter);
+  async getDashboardStats(tenantId: string, filter: string, branchId?: string, userId?: string, createdById?: string) {
+    let currentFilter: ReportFilter;
+    let prevFilter: ReportFilter | null = null;
+    
+    if (filter === 'current-shift' || filter === 'previous-shift') {
+      currentFilter = { type: filter, tenantId, branchId, userId: userId || '' };
+      prevFilter = filter === 'current-shift' ? { type: 'previous-shift', tenantId, branchId, userId: userId || '' } : null;
+    } else if (filter === 'shift') {
+      currentFilter = { type: 'shift', shiftId: '', tenantId, branchId }; 
+    } else {
+      currentFilter = { type: 'calendar', preset: filter as any, tenantId, branchId };
+    }
+
+    const currentResult = await resolveReportingPeriod(currentFilter);
+    const currentWhereDate = buildWhereClauseForIntervals(currentResult.intervals);
+
+    let prevWhereDate: any = { createdAt: { gte: new Date('9999-12-31') } }; 
+    if (prevFilter) {
+       const prevResult = await resolveReportingPeriod(prevFilter);
+       prevWhereDate = buildWhereClauseForIntervals(prevResult.intervals);
+    } else if (currentResult.intervals.length === 1 && !currentResult.isShiftBased) {
+       const start = currentResult.intervals[0].start;
+       const end = currentResult.intervals[0].end;
+       const duration = end.getTime() - start.getTime() + 1; 
+       prevWhereDate = {
+         createdAt: {
+           gte: new Date(start.getTime() - duration),
+           lt: start
+         }
+       };
+    }
 
     const baseWhere: any = { tenantId };
     if (branchId && branchId !== 'all') {
       baseWhere.branchId = branchId;
     }
+    if (createdById) {
+      baseWhere.createdById = createdById;
+    }
 
-    const currentWhere = { ...baseWhere, createdAt: { gte: currentStart, lte: currentEnd }, status: { not: 'CANCELLED' } };
-    const prevWhere = { ...baseWhere, createdAt: { gte: prevStart, lt: prevEnd }, status: { not: 'CANCELLED' } };
+    const currentWhere = { ...baseWhere, ...currentWhereDate, status: { not: 'CANCELLED' } };
+    const prevWhere = { ...baseWhere, ...prevWhereDate, status: { not: 'CANCELLED' } };
     const activeWhere = { ...baseWhere, status: { notIn: ['CANCELLED', 'DELIVERED', 'COMPLETED'] } };
 
     // Run parallel aggregates

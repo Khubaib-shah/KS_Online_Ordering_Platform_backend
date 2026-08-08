@@ -36,8 +36,6 @@ model Tenant {
   cashierShifts    CashierShift[]
   roles            Role[]
 
-  @@index([customDomain])
-  @@index([slug])
   @@map("tenants")
 }
 

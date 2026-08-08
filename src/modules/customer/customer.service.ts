@@ -9,8 +9,8 @@ export const customerService = {
     return customerRepository.list(tenantId, filters, skip, limit);
   },
 
-  async getById(id: string) {
-    const customer = await customerRepository.findById(id);
+  async getById(id: string, tenantId: string) {
+    const customer = await customerRepository.findById(id, tenantId);
     if (!customer) throw new NotFoundError('Customer', id);
     return customer;
   },

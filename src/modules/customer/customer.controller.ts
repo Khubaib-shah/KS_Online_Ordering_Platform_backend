@@ -20,7 +20,7 @@ export const customerController = {
 
   async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const customer = await customerService.getById(req.params.id);
+      const customer = await customerService.getById(req.params.id, req.tenantId!);
       sendSuccess(res, customer);
     } catch (error) {
       next(error);

@@ -41,14 +41,18 @@ export const promotionRepository = {
     });
   },
 
-  async update(id: string, data: any) {
+  async update(id: string, tenantId: string, data: any) {
+    const existing = await prisma.promotion.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Promotion not found');
     return prisma.promotion.update({
       where: { id },
       data,
     });
   },
 
-  async delete(id: string) {
+  async delete(id: string, tenantId: string) {
+    const existing = await prisma.promotion.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Promotion not found');
     return prisma.promotion.delete({
       where: { id },
     });

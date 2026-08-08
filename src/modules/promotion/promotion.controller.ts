@@ -36,7 +36,7 @@ export const promotionController = {
 
   async updatePromotion(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const promo = await promotionService.update(req.params.id, req.body);
+      const promo = await promotionService.update(req.params.id, req.tenantId!, req.body);
       sendSuccess(res, promo);
     } catch (error) {
       next(error);
@@ -45,7 +45,7 @@ export const promotionController = {
 
   async deletePromotion(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await promotionService.delete(req.params.id);
+      await promotionService.delete(req.params.id, req.tenantId!);
       sendSuccess(res, { deleted: true });
     } catch (error) {
       next(error);

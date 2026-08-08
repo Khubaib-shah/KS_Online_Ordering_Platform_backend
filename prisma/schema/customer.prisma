@@ -15,7 +15,6 @@ model Customer {
   orders        Order[]
 
   @@unique([tenantId, phone])
-  @@index([tenantId, phone])
   @@map("customers")
 }
 

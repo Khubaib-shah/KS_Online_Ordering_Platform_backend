@@ -38,7 +38,7 @@ router.post(
   '/pos/orders',
   authRequired,
   tenantResolver(),
-  requirePermission('orders', 'MANAGE'),
+  requirePermission('pos', 'USE'),
   validate({ body: createPosOrderSchema }),
   orderController.createPosOrder
 );
@@ -81,7 +81,7 @@ router.patch(
   '/orders/:id/status',
   authRequired,
   tenantResolver(),
-  requirePermission('orders', 'MANAGE'),
+  requirePermission('orders', 'SELF_ONLY'),
   validate({ body: updateOrderStatusSchema }),
   orderController.updateStatus
 );

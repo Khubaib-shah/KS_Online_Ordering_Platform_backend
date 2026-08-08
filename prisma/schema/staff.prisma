@@ -12,6 +12,7 @@ model User {
   staffProfile   StaffProfile?
   supportTickets SupportTicket[]
   shifts         CashierShift[]
+  createdOrders  Order[]         @relation("OrderCreatedBy")
   tenant         Tenant?         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
@@ -22,11 +23,7 @@ model StaffProfile {
   id                 String          @id @default(uuid())
   userId             String          @unique @map("user_id")
   branchId           String?         @map("branch_id")
-  designation        Designation     @default(GENERAL_STAFF)
-  permissionOrders   PermissionLevel @default(MANAGE) @map("permission_orders")
-  permissionMenu     PermissionLevel @default(READ) @map("permission_menu")
-  permissionReports  PermissionLevel @default(NONE) @map("permission_reports")
-  permissionSettings PermissionLevel @default(NONE) @map("permission_settings")
+  isOwner            Boolean         @default(false) @map("is_owner")
   roleId             String?         @map("role_id")
   createdAt          DateTime        @default(now()) @map("created_at")
   updatedAt          DateTime        @updatedAt @map("updated_at")
@@ -43,21 +40,6 @@ model StaffProfile {
 enum GlobalRole {
   SUPER_ADMIN
   TENANT_USER
-}
-
-enum Designation {
-  OWNER
-  BRANCH_MANAGER
-  CASHIER
-  KITCHEN_STAFF
-  RIDER
-  GENERAL_STAFF
-}
-
-enum PermissionLevel {
-  NONE
-  READ
-  MANAGE
 }
 
 model CashierShift {

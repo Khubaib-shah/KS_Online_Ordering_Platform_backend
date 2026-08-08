@@ -23,12 +23,10 @@ export const authService = {
         tenant: { select: { slug: true, name: true, status: true } },
         staffProfile: {
           select: {
-            designation: true,
+            isOwner: true,
             branchId: true,
-            permissionOrders: true,
-            permissionMenu: true,
-            permissionReports: true,
-            permissionSettings: true,
+            roleId: true,
+            role: true,
           },
         },
       },
@@ -113,12 +111,10 @@ export const authService = {
         tenant: { select: { id: true, slug: true, name: true, businessType: true, status: true } },
         staffProfile: {
           select: {
-            designation: true,
+            isOwner: true,
             branchId: true,
-            permissionOrders: true,
-            permissionMenu: true,
-            permissionReports: true,
-            permissionSettings: true,
+            roleId: true,
+            role: true,
             branch: { select: { id: true, name: true } },
           },
         },

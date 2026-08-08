@@ -41,9 +41,9 @@ export const customerRepository = {
     return { customers, total };
   },
 
-  async findById(id: string) {
-    return prisma.customer.findUnique({
-      where: { id },
+  async findById(id: string, tenantId: string) {
+    return prisma.customer.findFirst({
+      where: { id, tenantId },
       select: {
         ...CUSTOMER_SELECT,
         orders: {

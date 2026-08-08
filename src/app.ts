@@ -23,10 +23,15 @@ import analyticsRoutes from './modules/analytics/analytics.routes';
 import { tableRouter } from './modules/table/table.route';
 import { locationRoutes } from './modules/location/location.routes';
 import roleRoutes from './modules/role/role.routes';
+import shiftRoutes from './modules/shift/shift.routes';
+
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
 
 // ── Global Middleware ──
+app.use(helmet());
 app.use(cors({
   origin: env.CORS_ORIGIN.split(','),
   credentials: true,
@@ -34,6 +39,21 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// Disable browser caching for all API responses
+app.use((_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // limit each IP to 1000 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+});
+app.use(limiter);
 
 // ── Health Check ──
 app.get('/api/v1/health', (_req, res) => {
@@ -69,6 +89,7 @@ app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/team', staffRoutes);
 app.use('/api/v1/roles', roleRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/shifts', shiftRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/superadmin', superadminRoutes);
 app.use('/api/v1/upload', uploadRoutes);

@@ -1,52 +1,29 @@
 // ─── Report Service ─────────────────────────────────────────────────
 import { prisma } from '../../config/database';
-
-function getPeriodStart(period: string): Date {
-  const now = new Date();
-  switch (period) {
-    case 'today':
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    case 'week':
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay());
-      weekStart.setHours(0, 0, 0, 0);
-      return weekStart;
-    case 'month':
-      return new Date(now.getFullYear(), now.getMonth(), 1);
-    case 'year':
-      return new Date(now.getFullYear(), 0, 1);
-    default:
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }
-}
+import { resolveReportingPeriod, buildWhereClauseForIntervals, ReportFilter } from '../../lib/reporting-period';
 
 export const reportService = {
-  async getSummary(tenantId: string, period: string, branchId?: string, userId?: string) {
-    let periodStart = getPeriodStart(period);
-    let periodEnd = undefined;
-
-    if (period === 'shift' && userId) {
-      const activeShift = await prisma.cashierShift.findFirst({
-        where: { userId },
-        orderBy: { startTime: 'desc' }
-      });
-      if (activeShift) {
-        periodStart = activeShift.startTime;
-        if (activeShift.endTime) {
-          periodEnd = activeShift.endTime;
-        }
-      }
+  async getSummary(tenantId: string, period: string, branchId?: string, userId?: string, cashierId?: string) {
+    let reportFilter: ReportFilter;
+    if (period === 'current-shift' || period === 'previous-shift') {
+      reportFilter = { type: period, tenantId, branchId, userId: userId || '' };
+    } else if (period === 'shift') {
+      reportFilter = { type: 'shift', shiftId: '', tenantId, branchId }; // We don't have shiftId in query yet, but fallback
+    } else {
+      reportFilter = { type: 'calendar', preset: period as any, tenantId, branchId };
     }
+
+    const periodResult = await resolveReportingPeriod(reportFilter);
+    const dateWhere = buildWhereClauseForIntervals(periodResult.intervals);
 
     const where: any = {
       tenantId,
-      createdAt: { gte: periodStart },
+      ...dateWhere,
       status: { notIn: ['CANCELLED'] },
     };
-    if (periodEnd) {
-      where.createdAt.lte = periodEnd;
-    }
+    
     if (branchId) where.branchId = branchId;
+    if (cashierId) where.createdById = cashierId;
 
     // Aggregate queries
     const [

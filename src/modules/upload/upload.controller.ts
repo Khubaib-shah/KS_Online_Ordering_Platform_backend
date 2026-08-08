@@ -6,10 +6,11 @@ import { AppError } from '../../lib/errors';
 export class UploadController {
   static async uploadImage(req: Request, res: Response, next: NextFunction) {
     try {
-      const { tenantSlug, imageType } = req.body;
+      const { imageType } = req.body;
+      const tenantId = req.tenantId!; // Use authenticated tenant ID
 
-      if (!tenantSlug || !imageType) {
-        throw new AppError('tenantSlug and imageType are required', 400, 'BAD_REQUEST');
+      if (!imageType) {
+        throw new AppError('imageType is required', 400, 'BAD_REQUEST');
       }
 
       if (!req.file) {
@@ -18,7 +19,7 @@ export class UploadController {
 
       const metadata = await UploadService.uploadImage(
         req.file.buffer,
-        tenantSlug,
+        tenantId, // Now prefixing with tenant ID instead of arbitrary slug
         imageType
       );
 

@@ -100,11 +100,7 @@ export const tenantService = {
           staffProfile: {
             create: {
               branchId: branch.id,
-              designation: 'OWNER',
-              permissionOrders: 'MANAGE',
-              permissionMenu: 'MANAGE',
-              permissionReports: 'MANAGE',
-              permissionSettings: 'MANAGE',
+              isOwner: true,
             },
           },
         },

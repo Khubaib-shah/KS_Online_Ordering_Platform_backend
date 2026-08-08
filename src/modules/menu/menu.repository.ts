@@ -84,7 +84,9 @@ export const menuRepository = {
     });
   },
 
-  async updateCategory(id: string, data: any) {
+  async updateCategory(id: string, tenantId: string, data: any) {
+    const existing = await prisma.category.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Category not found');
     return prisma.category.update({
       where: { id },
       data,
@@ -92,7 +94,9 @@ export const menuRepository = {
     });
   },
 
-  async deleteCategory(id: string) {
+  async deleteCategory(id: string, tenantId: string) {
+    const existing = await prisma.category.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Category not found');
     return prisma.category.delete({ where: { id } });
   },
 
@@ -144,9 +148,9 @@ export const menuRepository = {
     return { items, total };
   },
 
-  async getMenuItemById(id: string) {
-    return prisma.menuItem.findUnique({
-      where: { id },
+  async getMenuItemById(id: string, tenantId: string) {
+    return prisma.menuItem.findFirst({
+      where: { id, tenantId },
       select: { ...MENU_ITEM_SELECT, ...VARIANT_INCLUDE, category: { select: { name: true } } },
     });
   },
@@ -177,7 +181,10 @@ export const menuRepository = {
     });
   },
 
-  async updateMenuItem(id: string, data: any) {
+  async updateMenuItem(id: string, tenantId: string, data: any) {
+    const existing = await prisma.menuItem.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Menu item not found');
+
     const { variantGroups, ...itemData } = data;
 
     // If variant groups are provided, delete old ones and recreate
@@ -210,11 +217,15 @@ export const menuRepository = {
     });
   },
 
-  async deleteMenuItem(id: string) {
+  async deleteMenuItem(id: string, tenantId: string) {
+    const existing = await prisma.menuItem.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Menu item not found');
     return prisma.menuItem.delete({ where: { id } });
   },
 
-  async toggleAvailability(id: string, isAvailable: boolean) {
+  async toggleAvailability(id: string, tenantId: string, isAvailable: boolean) {
+    const existing = await prisma.menuItem.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Menu item not found');
     return prisma.menuItem.update({
       where: { id },
       data: { isAvailable },
@@ -222,7 +233,9 @@ export const menuRepository = {
     });
   },
 
-  async toggleOnlineAvailability(id: string, availableOnline: boolean) {
+  async toggleOnlineAvailability(id: string, tenantId: string, availableOnline: boolean) {
+    const existing = await prisma.menuItem.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Menu item not found');
     return prisma.menuItem.update({
       where: { id },
       data: { availableOnline },

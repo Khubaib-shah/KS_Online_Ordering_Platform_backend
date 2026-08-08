@@ -239,6 +239,7 @@ export const orderService = {
     specialInstructions?: string | null;
     privateKitchenNotes?: string | null;
     orderNumber?: string;
+    createdById?: string;
   }) {
     return orderRepository.transaction(async (tx) => {
       const settings = await tx.tenantSettings.findUnique({
@@ -286,6 +287,7 @@ export const orderService = {
           privateKitchenNotes: data.privateKitchenNotes,
           // statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString() }],
           statusTimeline: [{ status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING', timestamp: new Date().toISOString() }],
+          createdById: data.createdById,
           items: { create: orderItems },
         },
         select: {
@@ -351,14 +353,14 @@ export const orderService = {
     });
   },
 
-  async getOrderById(id: string) {
-    const order = await orderRepository.findById(id);
+  async getOrderById(id: string, tenantId: string) {
+    const order = await orderRepository.findById(id, tenantId);
     if (!order) throw new NotFoundError('Order', id);
     return order;
   },
 
-  async getOrderByNumber(orderNumber: string, phone: string) {
-    const order = await orderRepository.findByOrderNumber(orderNumber);
+  async getOrderByNumber(orderNumber: string, phone: string, tenantId: string) {
+    const order = await orderRepository.findByOrderNumber(orderNumber, tenantId);
     if (!order) throw new NotFoundError('Order', orderNumber);
 
     // Phone verification for guest tracking
@@ -369,10 +371,10 @@ export const orderService = {
     return order;
   },
 
-  async deleteOrder(id: string) {
-    const order = await orderRepository.findById(id);
+  async deleteOrder(id: string, tenantId: string) {
+    const order = await orderRepository.findById(id, tenantId);
     if (!order) throw new NotFoundError('Order', id);
-    return orderRepository.delete(id);
+    return orderRepository.delete(id, tenantId);
   },
 
   async listOrders(tenantId: string, filters: any, page: number, limit: number) {
@@ -380,8 +382,8 @@ export const orderService = {
     return orderRepository.list(tenantId, filters, skip, limit);
   },
 
-  async updateStatus(id: string, status: string, notes?: string) {
-    const order = await orderRepository.findById(id);
+  async updateStatus(id: string, tenantId: string, status: string, notes?: string) {
+    const order = await orderRepository.findById(id, tenantId);
     if (!order) throw new NotFoundError('Order', id);
 
     // Build timeline
@@ -392,7 +394,7 @@ export const orderService = {
       notes: notes || undefined,
     });
 
-    return orderRepository.updateStatus(id, status, timeline);
+    return orderRepository.updateStatus(id, tenantId, status, timeline);
   },
 
   async getKitchenOrders(tenantId: string, branchId?: string) {

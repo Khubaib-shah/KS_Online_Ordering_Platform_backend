@@ -28,14 +28,18 @@ export const branchRepository = {
     });
   },
 
-  async update(id: string, data: any) {
+  async update(id: string, tenantId: string, data: any) {
+    const existing = await prisma.branch.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Branch not found');
     return prisma.branch.update({
       where: { id },
       data,
     });
   },
 
-  async delete(id: string) {
+  async delete(id: string, tenantId: string) {
+    const existing = await prisma.branch.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new Error('Branch not found');
     return prisma.branch.delete({
       where: { id },
     });
@@ -57,14 +61,18 @@ export const branchRepository = {
     });
   },
 
-  async updateZone(id: string, data: any) {
+  async updateZone(id: string, tenantId: string, data: any) {
+    const existing = await prisma.branchCoverage.findFirst({ where: { id, branch: { tenantId } } });
+    if (!existing) throw new Error('Zone not found');
     return prisma.branchCoverage.update({
       where: { id },
       data,
     });
   },
 
-  async deleteZone(id: string) {
+  async deleteZone(id: string, tenantId: string) {
+    const existing = await prisma.branchCoverage.findFirst({ where: { id, branch: { tenantId } } });
+    if (!existing) throw new Error('Zone not found');
     return prisma.branchCoverage.delete({
       where: { id },
     });

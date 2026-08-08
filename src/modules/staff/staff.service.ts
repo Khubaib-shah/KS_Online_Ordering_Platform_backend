@@ -9,7 +9,7 @@ export const staffService = {
   },
 
   async invite(tenantId: string, data: any) {
-    const { email, name, password, designation, branchId, ...perms } = data;
+    const { email, name, password, branchId, roleId } = data;
     const passwordHash = await bcrypt.hash(password, 12);
 
     const userData = {
@@ -20,23 +20,18 @@ export const staffService = {
     };
 
     const staffProfileData = {
-      designation: designation || 'GENERAL_STAFF',
-      roleId: data.roleId || null,
+      roleId: roleId || null,
       branchId,
-      permissionOrders: perms.permissionOrders || 'MANAGE',
-      permissionMenu: perms.permissionMenu || 'READ',
-      permissionReports: perms.permissionReports || 'NONE',
-      permissionSettings: perms.permissionSettings || 'NONE',
     };
 
     return staffRepository.create(tenantId, userData, staffProfileData);
   },
 
-  async updatePermissions(id: string, data: any) {
-    return staffRepository.updatePermissions(id, data);
+  async updatePermissions(id: string, tenantId: string, data: any) {
+    return staffRepository.updatePermissions(id, tenantId, data);
   },
 
-  async deactivate(userId: string) {
-    return staffRepository.deactivate(userId);
+  async deactivate(userId: string, tenantId: string) {
+    return staffRepository.deactivate(userId, tenantId);
   },
 };

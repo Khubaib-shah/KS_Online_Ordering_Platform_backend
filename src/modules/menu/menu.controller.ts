@@ -74,7 +74,7 @@ export const menuController = {
 
   async getMenuItem(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const item = await menuService.getMenuItemById(req.params.id);
+      const item = await menuService.getMenuItemById(req.params.id, req.tenantId!);
       sendSuccess(res, item);
     } catch (error) {
       next(error);

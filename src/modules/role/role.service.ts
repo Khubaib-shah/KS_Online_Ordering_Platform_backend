@@ -1,8 +1,10 @@
 import { prisma } from '../../config/database';
 import { ValidationError } from '../../lib/errors';
+import { z } from 'zod';
+import { createRoleSchema, updateRoleSchema } from './role.validation';
 
 export const roleService = {
-  async createRole(tenantId: string, data: any) {
+  async createRole(tenantId: string, data: z.infer<typeof createRoleSchema>) {
     const existing = await prisma.role.findFirst({
       where: {
         tenantId,
@@ -45,8 +47,10 @@ export const roleService = {
     });
   },
 
-  async updateRole(id: string, tenantId: string, data: any) {
-    const role = await prisma.role.findFirst({ where: { id, tenantId } });
+  async updateRole(id: string, tenantId: string, data: z.infer<typeof updateRoleSchema>) {
+    const role = await prisma.role.findFirst({
+      where: { id, tenantId },
+    });
     if (!role) throw new Error('Role not found');
     return prisma.role.update({
       where: { id },

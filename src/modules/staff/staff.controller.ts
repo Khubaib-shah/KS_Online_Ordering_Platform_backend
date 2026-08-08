@@ -26,7 +26,7 @@ export const staffController = {
 
   async updatePermissions(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const staff = await staffService.updatePermissions(req.params.id, req.body);
+      const staff = await staffService.updatePermissions(req.params.id, req.tenantId!, req.body);
       sendSuccess(res, staff);
     } catch (error) {
       next(error);
@@ -35,7 +35,7 @@ export const staffController = {
 
   async deactivateStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await staffService.deactivate(req.params.userId);
+      await staffService.deactivate(req.params.userId, req.tenantId!);
       sendSuccess(res, { deactivated: true });
     } catch (error) {
       next(error);
