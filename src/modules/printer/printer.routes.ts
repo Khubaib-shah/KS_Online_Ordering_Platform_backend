@@ -12,7 +12,7 @@ router.post(
   '/pair',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Create'),
   printerController.pairDevice
 );
 
@@ -21,7 +21,7 @@ router.get(
   '/pending',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Edit'),
   printerController.listPendingDevices
 );
 

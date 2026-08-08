@@ -16,7 +16,7 @@ router.get(
   '/',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'READ'),
+  requirePermission('settings', 'View'),
   staffController.listStaff
 );
 
@@ -26,7 +26,7 @@ router.post(
   staffInviteRateLimiter,
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Create'),
   validate({ body: inviteStaffSchema }),
   staffController.inviteStaff
 );
@@ -36,7 +36,7 @@ router.put(
   '/:id/permissions',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Edit'),
   validate({ body: updatePermissionsSchema }),
   staffController.updatePermissions
 );
@@ -46,7 +46,7 @@ router.patch(
   '/:userId/deactivate',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Edit'),
   staffController.deactivateStaff
 );
 

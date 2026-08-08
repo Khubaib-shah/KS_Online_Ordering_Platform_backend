@@ -6,19 +6,9 @@ import { prisma } from '../config/database';
 import { sendError } from '../lib/api-response';
 
 export type PermissionModule = 'orders' | 'menu' | 'reports' | 'settings' | 'staff' | 'customers' | 'branches' | 'pos';
-export type RequiredLevel = 'READ' | 'MANAGE' | 'USE' | 'BRANCH_ONLY' | 'SELF_ONLY' | 'ALL';
+export type RequiredLevel = 'View' | 'Create' | 'Edit' | 'Delete';
 
-// Maps requested minimum level to an array of allowed JSON values (in uppercase)
-const LEVEL_MAP: Record<RequiredLevel, string[]> = {
-  READ: ['READ', 'MANAGE', 'BRANCH_ONLY', 'SELF_ONLY', 'ALL'],
-  MANAGE: ['MANAGE', 'ALL'],
-  USE: ['USE', 'MANAGE'],
-  BRANCH_ONLY: ['BRANCH_ONLY', 'ALL', 'MANAGE'],
-  SELF_ONLY: ['SELF_ONLY', 'BRANCH_ONLY', 'ALL', 'MANAGE'],
-  ALL: ['ALL', 'MANAGE']
-};
-
-export function requirePermission(module: PermissionModule, level: RequiredLevel = 'READ') {
+export function requirePermission(module: PermissionModule, level: RequiredLevel = 'View') {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.user) {
@@ -50,10 +40,25 @@ export function requirePermission(module: PermissionModule, level: RequiredLevel
          return;
       }
 
-      const perms = staffProfile.role.permissions as Record<string, string>;
-      const userLevel = (perms[module] || 'NONE').toUpperCase();
+      const perms = staffProfile.role.permissions as Record<string, any>;
+      // Case-insensitive module matching
+      const moduleKey = Object.keys(perms).find(k => k.toLowerCase() === module.toLowerCase());
+      const userLevel = moduleKey ? perms[moduleKey] : [];
 
-      if (userLevel === 'NONE' || !LEVEL_MAP[level].includes(userLevel)) {
+      // Support for both legacy string permissions (e.g. 'manage', 'all') and new array permissions
+      let hasAccess = false;
+      if (Array.isArray(userLevel)) {
+        hasAccess = userLevel.map(l => l.toLowerCase()).includes(level.toLowerCase());
+      } else if (typeof userLevel === 'string') {
+        // Fallback for legacy roles (if userLevel is 'manage' or 'all', allow everything, if 'read' allow View)
+        const legacyLevel = userLevel.toUpperCase();
+        if (legacyLevel === 'MANAGE' || legacyLevel === 'ALL') hasAccess = true;
+        if (level === 'View' && legacyLevel === 'READ') hasAccess = true;
+        if (legacyLevel === 'USE' && level === 'Create') hasAccess = true;
+        if (legacyLevel === 'USE' && level === 'View') hasAccess = true;
+      }
+
+      if (!hasAccess) {
         sendError(res, 403, 'INSUFFICIENT_PERMISSION', `Requires ${level} access on ${module}`);
         return;
       }

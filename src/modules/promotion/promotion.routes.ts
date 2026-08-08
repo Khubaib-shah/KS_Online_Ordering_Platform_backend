@@ -23,7 +23,7 @@ router.get(
   '/promotions',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'READ'),
+  requirePermission('menu', 'View'),
   promotionController.listPromotions
 );
 
@@ -31,7 +31,7 @@ router.post(
   '/promotions',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Create'),
   validate({ body: createPromoSchema }),
   promotionController.createPromotion
 );
@@ -40,7 +40,7 @@ router.put(
   '/promotions/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Edit'),
   validate({ body: createPromoSchema.partial() }),
   promotionController.updatePromotion
 );
@@ -49,7 +49,7 @@ router.delete(
   '/promotions/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Delete'),
   promotionController.deletePromotion
 );
 

@@ -32,7 +32,8 @@ export const orderController = {
   // ── POS ──
   async createPosOrder(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const orderData = { ...req.body, createdById: req.user?.userId };
+      const user = await prisma.user.findUnique({ where: { id: req.user?.userId }, select: { name: true }});
+      const orderData = { ...req.body, createdById: req.user?.userId, author: user?.name || 'Staff' };
       const order = await orderService.createPosOrder(req.tenantId!, orderData);
       sendSuccess(res, order, 201);
     } catch (error) {
@@ -54,13 +55,7 @@ export const orderController = {
           include: { role: true },
         });
 
-        if (staffProfile && !staffProfile.isOwner && staffProfile.role?.permissions) {
-          const perms = staffProfile.role.permissions as any;
-          const ordersPerm = (perms.orders || perms.Orders || '').toString().toLowerCase();
-          if (ordersPerm === 'self_only') {
-            createdById = req.user.userId;
-          }
-        }
+
       }
 
       const { orders, total, statusCounts } = await orderService.listOrders(
@@ -96,7 +91,12 @@ export const orderController = {
   async updateStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { status, notes } = req.body;
-      const order = await orderService.updateStatus(req.params.id, req.tenantId!, status, notes);
+      let author = 'System';
+      if (req.user?.userId) {
+        const user = await prisma.user.findUnique({ where: { id: req.user.userId }, select: { name: true }});
+        if (user) author = user.name;
+      }
+      const order = await orderService.updateStatus(req.params.id, req.tenantId!, status, notes, author);
       sendSuccess(res, order);
     } catch (error) {
       next(error);

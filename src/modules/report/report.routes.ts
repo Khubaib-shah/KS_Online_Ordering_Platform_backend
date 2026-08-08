@@ -14,7 +14,7 @@ router.get(
   '/summary',
   authRequired,
   tenantResolver(),
-  requirePermission('reports', 'READ'),
+  requirePermission('reports', 'View'),
   validate({ query: reportQuerySchema }),
   reportController.getSummary
 );

@@ -28,7 +28,7 @@ router.get(
   '/menu/categories',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'READ'),
+  requirePermission('menu', 'View'),
   menuController.listCategories
 );
 
@@ -36,7 +36,7 @@ router.post(
   '/menu/categories',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Create'),
   validate({ body: createCategorySchema }),
   menuController.createCategory
 );
@@ -45,7 +45,7 @@ router.put(
   '/menu/categories/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Edit'),
   validate({ body: updateCategorySchema }),
   menuController.updateCategory
 );
@@ -54,7 +54,7 @@ router.delete(
   '/menu/categories/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Delete'),
   menuController.deleteCategory
 );
 
@@ -63,7 +63,7 @@ router.get(
   '/menu/items',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'READ'),
+  requirePermission('menu', 'View'),
   validate({ query: listMenuItemsQuerySchema }),
   menuController.listMenuItems
 );
@@ -72,7 +72,7 @@ router.get(
   '/menu/items/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'READ'),
+  requirePermission('menu', 'View'),
   menuController.getMenuItem
 );
 
@@ -80,7 +80,7 @@ router.post(
   '/menu/items',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Create'),
   validate({ body: createMenuItemSchema }),
   menuController.createMenuItem
 );
@@ -89,7 +89,7 @@ router.put(
   '/menu/items/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Edit'),
   validate({ body: updateMenuItemSchema }),
   menuController.updateMenuItem
 );
@@ -98,7 +98,7 @@ router.delete(
   '/menu/items/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Delete'),
   menuController.deleteMenuItem
 );
 
@@ -106,7 +106,7 @@ router.patch(
   '/menu/items/:id/availability',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Edit'),
   menuController.toggleAvailability
 );
 
@@ -114,7 +114,7 @@ router.patch(
   '/menu/items/:id/online-availability',
   authRequired,
   tenantResolver(),
-  requirePermission('menu', 'MANAGE'),
+  requirePermission('menu', 'Edit'),
   menuController.toggleOnlineAvailability
 );
 

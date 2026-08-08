@@ -165,7 +165,7 @@ export const orderService = {
           deliveryInstructions: data.deliveryInstructions,
           specialInstructions: data.specialInstructions,
           areaId: data.areaId,
-          statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString() }],
+          statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString(), author: `Customer (${data.customer.name})` }],
           items: { create: orderItems },
         },
         select: {
@@ -240,6 +240,7 @@ export const orderService = {
     privateKitchenNotes?: string | null;
     orderNumber?: string;
     createdById?: string;
+    author?: string;
   }) {
     return orderRepository.transaction(async (tx) => {
       const settings = await tx.tenantSettings.findUnique({
@@ -285,8 +286,7 @@ export const orderService = {
           tableNumber: data.tableNumber,
           specialInstructions: data.specialInstructions,
           privateKitchenNotes: data.privateKitchenNotes,
-          // statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString() }],
-          statusTimeline: [{ status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING', timestamp: new Date().toISOString() }],
+          statusTimeline: [{ status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING', timestamp: new Date().toISOString(), author: data.author || 'Staff' }],
           createdById: data.createdById,
           items: { create: orderItems },
         },
@@ -382,7 +382,7 @@ export const orderService = {
     return orderRepository.list(tenantId, filters, skip, limit);
   },
 
-  async updateStatus(id: string, tenantId: string, status: string, notes?: string) {
+  async updateStatus(id: string, tenantId: string, status: string, notes?: string, author?: string) {
     const order = await orderRepository.findById(id, tenantId);
     if (!order) throw new NotFoundError('Order', id);
 
@@ -392,6 +392,7 @@ export const orderService = {
       status,
       timestamp: new Date().toISOString(),
       notes: notes || undefined,
+      author: author || 'System',
     });
 
     return orderRepository.updateStatus(id, tenantId, status, timeline);

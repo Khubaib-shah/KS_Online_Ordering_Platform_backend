@@ -20,13 +20,7 @@ export const analyticsController = {
           include: { role: true },
         });
 
-        if (staffProfile && !staffProfile.isOwner && staffProfile.role?.permissions) {
-          const perms = staffProfile.role.permissions as any;
-          const reportsPerm = (perms.reports || perms.Reports || '').toString().toLowerCase();
-          if (reportsPerm === 'self_only') {
-            createdById = req.user.userId;
-          }
-        }
+
       }
 
       const stats = await analyticsService.getDashboardStats(req.tenantId!, finalFilter, branchId, req.user?.userId, createdById);

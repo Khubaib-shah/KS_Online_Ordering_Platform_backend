@@ -38,7 +38,7 @@ router.post(
   '/pos/orders',
   authRequired,
   tenantResolver(),
-  requirePermission('pos', 'USE'),
+  requirePermission('pos', 'Create'),
   validate({ body: createPosOrderSchema }),
   orderController.createPosOrder
 );
@@ -48,7 +48,7 @@ router.get(
   '/orders',
   authRequired,
   tenantResolver(),
-  requirePermission('orders', 'READ'),
+  requirePermission('orders', 'View'),
   validate({ query: listOrdersQuerySchema }),
   orderController.listOrders
 );
@@ -57,7 +57,7 @@ router.get(
   '/orders/kitchen',
   authRequired,
   tenantResolver(),
-  requirePermission('orders', 'READ'),
+  requirePermission('orders', 'View'),
   orderController.getKitchenOrders
 );
 
@@ -65,7 +65,7 @@ router.get(
   '/orders/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('orders', 'READ'),
+  requirePermission('orders', 'View'),
   orderController.getOrder
 );
 
@@ -73,7 +73,7 @@ router.delete(
   '/orders/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('orders', 'MANAGE'),
+  requirePermission('orders', 'Delete'),
   orderController.deleteOrder
 );
 
@@ -81,7 +81,7 @@ router.patch(
   '/orders/:id/status',
   authRequired,
   tenantResolver(),
-  requirePermission('orders', 'SELF_ONLY'),
+  requirePermission('orders', 'Edit'),
   validate({ body: updateOrderStatusSchema }),
   orderController.updateStatus
 );

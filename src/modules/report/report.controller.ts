@@ -18,14 +18,7 @@ export const reportController = {
           include: { role: true },
         });
 
-        if (staffProfile && !staffProfile.isOwner && staffProfile.role?.permissions) {
-          const perms = staffProfile.role.permissions as any;
-          const reportsPerm = (perms.reports || perms.Reports || '').toString().toLowerCase();
-          if (reportsPerm === 'self_only') {
-            createdById = req.user.userId;
-            cashierId = req.user.userId; // Force override
-          }
-        }
+
       }
 
       const summary = await reportService.getSummary(req.tenantId!, period, branchId, req.user?.userId, createdById);

@@ -22,7 +22,7 @@ router.post(
   '/branches',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Create'),
   validate({ body: createBranchSchema }),
   branchController.createBranch
 );
@@ -31,7 +31,7 @@ router.put(
   '/branches/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Edit'),
   validate({ body: createBranchSchema.partial() }),
   branchController.updateBranch
 );
@@ -40,7 +40,7 @@ router.delete(
   '/branches/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Delete'),
   branchController.deleteBranch
 );
 
@@ -56,7 +56,7 @@ router.post(
   '/branches/:branchId/delivery-zones',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Create'),
   validate({ body: createDeliveryZoneSchema }),
   branchController.createZone
 );
@@ -65,7 +65,7 @@ router.put(
   '/branches/delivery-zones/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Edit'),
   validate({ body: createDeliveryZoneSchema.partial() }),
   branchController.updateZone
 );
@@ -74,7 +74,7 @@ router.delete(
   '/branches/delivery-zones/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'MANAGE'),
+  requirePermission('settings', 'Delete'),
   branchController.deleteZone
 );
 
