@@ -3,6 +3,7 @@
 import { menuRepository } from './menu.repository';
 import { cacheGetOrSet, cacheInvalidateByTag } from '../../lib/cache';
 import { NotFoundError } from '../../lib/errors';
+import { enforcePlanLimit } from '../../lib/plan-limits';
 
 export const menuService = {
   // ── Public Catalog (cached) ──
@@ -53,6 +54,7 @@ export const menuService = {
   },
 
   async createMenuItem(tenantId: string, data: any) {
+    await enforcePlanLimit(tenantId, 'MENU_ITEM');
     const result = await menuRepository.createMenuItem(tenantId, data);
     await cacheInvalidateByTag(`catalog:${tenantId}`);
     return result;

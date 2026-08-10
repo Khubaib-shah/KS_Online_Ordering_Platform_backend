@@ -2,9 +2,10 @@
 // Server-side price recalculation — NEVER trust client prices.
 
 import { orderRepository } from './order.repository';
-import { NotFoundError } from '../../lib/errors';
+import { NotFoundError, ValidationError } from '../../lib/errors';
 import { Decimal } from '@prisma/client/runtime/library';
-import { generateOrderNumber, recalculateLineItems, OrderItemInput } from './order.helper';
+import { generateOrderNumber, recalculateLineItems, createOrderWithRetry, OrderItemInput } from './order.helper';
+import { printJobService } from '../printer/print-job.service';
 
 
 
@@ -25,10 +26,19 @@ export const orderService = {
     promoCode?: string | null;
     areaId?: string | null;
   }) {
-    return orderRepository.transaction(async (tx) => {
+    const order = await orderRepository.transaction(async (tx) => {
       // 1. Resolve branch
       let branchId = data.branchId;
-      
+
+      if (branchId) {
+        // Verify the requested branch actually belongs to this tenant
+        const branch = await tx.branch.findFirst({
+          where: { id: branchId, tenantId, isActive: true },
+          select: { id: true },
+        });
+        if (!branch) throw new NotFoundError('Branch', branchId);
+      }
+
       if (!branchId && data.fulfillmentType === 'DELIVERY' && data.areaId) {
         const coverage = await tx.branchCoverage.findFirst({
           where: {
@@ -58,7 +68,10 @@ export const orderService = {
       if (!settings) throw new NotFoundError('Tenant settings');
 
       // 3. Server-side price recalculation for each item
-      const { orderItems, subtotal } = await recalculateLineItems(tx, data.items);
+      const { orderItems, subtotal } = await recalculateLineItems(tx, data.items, {
+        tenantId,
+        requireAvailableOnline: true,
+      });
 
       // 4. Calculate tax, delivery fee, promo discount
       const taxAmount = subtotal.mul(settings.taxRate).div(100);
@@ -110,11 +123,22 @@ export const orderService = {
               deliveryFee = new Decimal(0);
             }
 
-            // Increment usage counter
-            await tx.promotion.update({
-              where: { id: promo.id },
-              data: { timesUsed: { increment: 1 } },
-            });
+            // Increment usage counter atomically — the WHERE clause makes the
+            // limit check-and-increment race-free under concurrent orders.
+            if (promo.usageLimit) {
+              const claimed = await tx.promotion.updateMany({
+                where: { id: promo.id, timesUsed: { lt: promo.usageLimit } },
+                data: { timesUsed: { increment: 1 } },
+              });
+              if (claimed.count === 0) {
+                throw new ValidationError(`Promo code '${promo.code}' has reached its usage limit`);
+              }
+            } else {
+              await tx.promotion.update({
+                where: { id: promo.id },
+                data: { timesUsed: { increment: 1 } },
+              });
+            }
           }
         }
       }
@@ -143,72 +167,33 @@ export const orderService = {
         },
       });
 
-      // 6. Create order
-      const order = await tx.order.create({
-        data: {
-          orderNumber: generateOrderNumber(tenantId),
-          tenantId,
-          branchId,
-          customerId: customer.id,
-          channel: 'WEBSITE',
-          fulfillmentType: data.fulfillmentType,
-          status: 'PENDING',
-          paymentMethod: data.paymentMethod,
-          paymentStatus: data.paymentMethod === 'COD' || data.paymentMethod === 'CASH' ? 'UNPAID' : 'PAID',
-          subtotal,
-          taxAmount,
-          discountAmount,
-          deliveryFee,
-          grandTotal,
-          deliveryAddress: data.deliveryAddress,
-          nearestLandmark: data.nearestLandmark,
-          deliveryInstructions: data.deliveryInstructions,
-          specialInstructions: data.specialInstructions,
-          areaId: data.areaId,
-          statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString(), author: `Customer (${data.customer.name})` }],
-          items: { create: orderItems },
-        },
-        select: {
-          id: true,
-          orderNumber: true,
-          channel: true,
-          fulfillmentType: true,
-          status: true,
-          paymentMethod: true,
-          paymentStatus: true,
-          subtotal: true,
-          taxAmount: true,
-          discountAmount: true,
-          deliveryFee: true,
-          grandTotal: true,
-          deliveryAddress: true,
-          nearestLandmark: true,
-          deliveryInstructions: true,
-          tableNumber: true,
-          specialInstructions: true,
-          privateKitchenNotes: true,
-          statusTimeline: true,
-          createdAt: true,
-          updatedAt: true,
-          customer: {
-            select: { id: true, name: true, phone: true, email: true },
-          },
-          branch: {
-            select: { id: true, name: true },
-          },
-          items: {
-            select: {
-              id: true,
-              itemName: true,
-              unitPrice: true,
-              quantity: true,
-              selectedVariants: true,
-              itemNote: true,
-              totalPrice: true,
-            },
-          },
-        }
-      });
+      // 6. Create order (retry on order-number collision)
+      const order = await createOrderWithRetry(tx, tenantId, (orderNumber) => ({
+        orderNumber,
+        tenantId,
+        branchId,
+        customerId: customer.id,
+        channel: 'WEBSITE',
+        fulfillmentType: data.fulfillmentType,
+        status: 'PENDING',
+        paymentMethod: data.paymentMethod,
+        // No online gateway is integrated yet — no order can be considered paid at
+        // creation. Staff marks it PAID (PATCH /orders/:id/payment) once payment is
+        // received or when the gateway is implemented later.
+        paymentStatus: 'UNPAID',
+        subtotal,
+        taxAmount,
+        discountAmount,
+        deliveryFee,
+        grandTotal,
+        deliveryAddress: data.deliveryAddress,
+        nearestLandmark: data.nearestLandmark,
+        deliveryInstructions: data.deliveryInstructions,
+        specialInstructions: data.specialInstructions,
+        areaId: data.areaId,
+        statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString(), author: `Customer (${data.customer.name})` }],
+        items: { create: orderItems },
+      }));
 
       // 7. Award loyalty points (1 point per 100 PKR)
       const pointsEarned = Math.floor(grandTotal.toNumber() / 100);
@@ -221,6 +206,13 @@ export const orderService = {
 
       return order;
     });
+
+    // 8. Dispatch kitchen docket to branch printers (never fails the order)
+    if (order?.branch?.id) {
+      await printJobService.dispatchForOrder(tenantId, order.branch.id, order, ['KITCHEN_DOCKET']);
+    }
+
+    return order;
   },
 
   /**
@@ -242,7 +234,14 @@ export const orderService = {
     createdById?: string;
     author?: string;
   }) {
-    return orderRepository.transaction(async (tx) => {
+    const order = await orderRepository.transaction(async (tx) => {
+      // Verify the branch belongs to this tenant
+      const branch = await tx.branch.findFirst({
+        where: { id: data.branchId, tenantId },
+        select: { id: true },
+      });
+      if (!branch) throw new NotFoundError('Branch', data.branchId);
+
       const settings = await tx.tenantSettings.findUnique({
         where: { tenantId },
         select: { taxRate: true },
@@ -250,7 +249,7 @@ export const orderService = {
       if (!settings) throw new NotFoundError('Tenant settings');
 
       // Server-side price recalculation
-      const { orderItems, subtotal } = await recalculateLineItems(tx, data.items);
+      const { orderItems, subtotal } = await recalculateLineItems(tx, data.items, { tenantId });
 
       const taxAmount = subtotal.mul(settings.taxRate).div(100);
       const grandTotal = subtotal.add(taxAmount);
@@ -266,76 +265,86 @@ export const orderService = {
         customerId = customer.id;
       }
 
-      const order = await tx.order.create({
-        data: {
-          orderNumber: data.orderNumber || generateOrderNumber(tenantId),
-          tenantId,
-          branchId: data.branchId,
-          customerId,
-          channel: 'POS',
-          fulfillmentType: data.fulfillmentType,
-          // status: 'PENDING',
-          status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING',
-          paymentMethod: data.paymentMethod,
-          paymentStatus: data.fulfillmentType === 'DINE_IN' ? 'UNPAID' : 'PAID', // Dine-in orders are paid later
-          subtotal,
-          taxAmount,
-          discountAmount: 0,
-          deliveryFee: 0,
-          grandTotal,
-          tableNumber: data.tableNumber,
-          specialInstructions: data.specialInstructions,
-          privateKitchenNotes: data.privateKitchenNotes,
-          statusTimeline: [{ status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING', timestamp: new Date().toISOString(), author: data.author || 'Staff' }],
-          createdById: data.createdById,
-          items: { create: orderItems },
-        },
-        select: {
-          id: true,
-          orderNumber: true,
-          channel: true,
-          fulfillmentType: true,
-          status: true,
-          paymentMethod: true,
-          paymentStatus: true,
-          subtotal: true,
-          taxAmount: true,
-          discountAmount: true,
-          deliveryFee: true,
-          grandTotal: true,
-          deliveryAddress: true,
-          nearestLandmark: true,
-          deliveryInstructions: true,
-          tableNumber: true,
-          specialInstructions: true,
-          privateKitchenNotes: true,
-          statusTimeline: true,
-          createdAt: true,
-          updatedAt: true,
-          customer: {
-            select: { id: true, name: true, phone: true, email: true },
-          },
-          branch: {
-            select: { id: true, name: true },
-          },
-          items: {
+      const orderData = (orderNumber: string) => ({
+        orderNumber,
+        tenantId,
+        branchId: data.branchId,
+        customerId,
+        channel: 'POS',
+        fulfillmentType: data.fulfillmentType,
+        // status: 'PENDING',
+        status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING',
+        paymentMethod: data.paymentMethod,
+        paymentStatus: data.fulfillmentType === 'DINE_IN' ? 'UNPAID' : 'PAID', // Dine-in orders are paid later
+        subtotal,
+        taxAmount,
+        discountAmount: 0,
+        deliveryFee: 0,
+        grandTotal,
+        tableNumber: data.tableNumber,
+        specialInstructions: data.specialInstructions,
+        privateKitchenNotes: data.privateKitchenNotes,
+        statusTimeline: [{ status: data.fulfillmentType === 'TAKEAWAY' ? 'COMPLETED' : 'PENDING', timestamp: new Date().toISOString(), author: data.author || 'Staff' }],
+        createdById: data.createdById,
+        items: { create: orderItems },
+      });
+
+      // Retry with a fresh number only when the number is auto-generated;
+      // an explicit offline-recovery orderNumber must collide or it surfaces as a genuine duplicate.
+      const order = data.orderNumber
+        ? await tx.order.create({
+            data: orderData(data.orderNumber),
             select: {
               id: true,
-              itemName: true,
-              unitPrice: true,
-              quantity: true,
-              selectedVariants: true,
-              itemNote: true,
-              totalPrice: true,
+              orderNumber: true,
+              channel: true,
+              fulfillmentType: true,
+              status: true,
+              paymentMethod: true,
+              paymentStatus: true,
+              subtotal: true,
+              taxAmount: true,
+              discountAmount: true,
+              deliveryFee: true,
+              grandTotal: true,
+              deliveryAddress: true,
+              nearestLandmark: true,
+              deliveryInstructions: true,
+              tableNumber: true,
+              specialInstructions: true,
+              privateKitchenNotes: true,
+              statusTimeline: true,
+              createdAt: true,
+              updatedAt: true,
+              customer: {
+                select: { id: true, name: true, phone: true, email: true },
+              },
+              branch: {
+                select: { id: true, name: true },
+              },
+              items: {
+                select: {
+                  id: true,
+                  itemName: true,
+                  unitPrice: true,
+                  quantity: true,
+                  selectedVariants: true,
+                  itemNote: true,
+                  totalPrice: true,
+                },
+              },
             },
-          },
-        }
-      });
+          })
+        : await createOrderWithRetry(tx, tenantId, orderData);
 
       // Cash change calculation
       let change = null;
       if (data.cashReceived && data.paymentMethod === 'CASH') {
-        change = new Decimal(data.cashReceived).sub(grandTotal).toNumber();
+        const received = new Decimal(data.cashReceived);
+        if (received.lt(grandTotal)) {
+          throw new ValidationError('Cash received is less than the order total');
+        }
+        change = received.sub(grandTotal).toNumber();
       }
 
       // Loyalty points (1 pt / 100 PKR)
@@ -351,6 +360,13 @@ export const orderService = {
 
       return { ...order, change };
     });
+
+    // Dispatch receipt + kitchen docket to branch printers (never fails the order)
+    if (order?.branch?.id) {
+      await printJobService.dispatchForOrder(tenantId, order.branch.id, order, ['RECEIPT', 'KITCHEN_DOCKET']);
+    }
+
+    return order;
   },
 
   async getOrderById(id: string, tenantId: string) {
@@ -395,7 +411,37 @@ export const orderService = {
       author: author || 'System',
     });
 
-    return orderRepository.updateStatus(id, tenantId, status, timeline);
+    const updated = await orderRepository.updateStatus(order.id, tenantId, status, timeline);
+
+    // Print the customer receipt when a website order is accepted (never fails the order)
+    if (status === 'ACCEPTED' && order.channel === 'WEBSITE' && updated?.branch?.id) {
+      await printJobService.dispatchForOrder(tenantId, updated.branch.id, updated, ['RECEIPT']);
+    }
+
+    return updated;
+  },
+
+  async updatePaymentStatus(
+    id: string,
+    tenantId: string,
+    data: { paymentStatus: 'PAID' | 'UNPAID'; paymentMethod?: string }
+  ) {
+    const order = await orderRepository.findById(id, tenantId);
+    if (!order) throw new NotFoundError('Order', id);
+
+    // Record the payment change in the status timeline for auditability
+    const timeline = Array.isArray(order.statusTimeline) ? [...(order.statusTimeline as any[])] : [];
+    timeline.push({
+      status: order.status,
+      timestamp: new Date().toISOString(),
+      notes: data.paymentMethod
+        ? `Payment marked ${data.paymentStatus} (${data.paymentMethod})`
+        : `Payment marked ${data.paymentStatus}`,
+      author: 'Staff',
+    });
+
+    const updated = await orderRepository.updatePayment(order.id, tenantId, { ...data, timeline });
+    return updated;
   },
 
   async getKitchenOrders(tenantId: string, branchId?: string) {

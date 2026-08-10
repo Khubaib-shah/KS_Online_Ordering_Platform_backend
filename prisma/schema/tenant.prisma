@@ -29,6 +29,8 @@ model Tenant {
   content          TenantContent?
   settings         TenantSettings?
   theme            TenantTheme?
+  faqPage          TenantFaqPage?
+  privacyPolicy    TenantPrivacyPolicy?
   plan             PlatformPlan?   @relation(fields: [planId], references: [id])
   users            User[]
   tables           Table[]
@@ -96,8 +98,6 @@ model TenantContent {
   footerConfig      Json?    @map("footer_config")
   copyConfig        Json?    @map("copy_config")
   heroSlides        Json?    @map("hero_slides")
-  faqs              Json?
-  privacyPolicy     Json?    @map("privacy_policy")
   seoTitle          String?  @map("seo_title") @db.VarChar(255)
   seoDescription    String?  @map("seo_description")
   seoKeywords       String[] @default([]) @map("seo_keywords")
@@ -127,4 +127,57 @@ enum TenantStatus {
   ACTIVE
   SUSPENDED
   PENDING_PAYMENT
+}
+
+model TenantFaqPage {
+  id          String   @id @default(uuid())
+  tenantId    String   @unique @map("tenant_id")
+  title       String?  @db.VarChar(255)
+  description String?  @db.Text
+  faqs        TenantFaqItem[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_faq_pages")
+}
+
+model TenantFaqItem {
+  id          String   @id @default(uuid())
+  pageId      String   @map("page_id")
+  question    String   @db.VarChar(255)
+  answer      String   @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  page        TenantFaqPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_faq_items")
+}
+
+model TenantPrivacyPolicy {
+  id          String   @id @default(uuid())
+  tenantId    String   @unique @map("tenant_id")
+  title       String?  @db.VarChar(255)
+  description String?  @db.Text
+  sections    TenantPrivacyPolicySection[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_privacy_policies")
+}
+
+model TenantPrivacyPolicySection {
+  id          String   @id @default(uuid())
+  policyId    String   @map("policy_id")
+  title       String   @db.VarChar(255)
+  content     String   @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  policy      TenantPrivacyPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_privacy_policy_sections")
 }

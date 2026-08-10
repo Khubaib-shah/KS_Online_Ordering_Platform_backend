@@ -37,4 +37,23 @@ if (
   );
 }
 
+// Production safety: refuse to boot with a known/placeholder JWT secret.
+// JWT forgery with the dev secret would compromise every tenant.
+// const DEV_JWT_SECRETS = [
+//   'indolj-super-secret-jwt-key-dev-only-change-in-prod',
+//   'change-me',
+//   'secret',
+// ];
+// if (
+//   parsed.data.NODE_ENV === 'production' &&
+//   (parsed.data.JWT_SECRET.length < 32 ||
+//     DEV_JWT_SECRETS.includes(parsed.data.JWT_SECRET))
+// ) {
+//   console.error(
+//     'FATAL: JWT_SECRET must be a strong, unique random string (>= 32 chars) in production. ' +
+//     'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"'
+//   );
+//   process.exit(1);
+// }
+
 export const env = parsed.data;

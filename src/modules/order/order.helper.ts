@@ -19,6 +19,34 @@ export function generateOrderNumber(tenantIdentifier?: string): string {
   return `${prefix}-${randomPart}`;
 }
 
+/**
+ * Creates an order inside an existing transaction, retrying on order-number
+ * collisions (Prisma P2002). Order numbers are random 6-digit suffixes, so a
+ * collision is rare but possible at scale — never fail the customer's order.
+ */
+export async function createOrderWithRetry(
+  tx: any,
+  tenantId: string,
+  buildData: (orderNumber: string) => Record<string, unknown>
+) {
+  const MAX_ATTEMPTS = 5;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const orderNumber = generateOrderNumber(tenantId);
+    try {
+      return await tx.order.create({
+        data: buildData(orderNumber) as any,
+      });
+    } catch (error: any) {
+      const isCollision =
+        error?.code === 'P2002' &&
+        Array.isArray(error?.meta?.target) &&
+        error.meta.target.includes('orderNumber');
+      if (!isCollision || attempt === MAX_ATTEMPTS) throw error;
+    }
+  }
+  throw new Error('Could not allocate a unique order number');
+}
+
 export interface OrderItemInput {
   menuItemId: string;
   quantity: number;
@@ -26,19 +54,27 @@ export interface OrderItemInput {
   itemNote?: string | null;
 }
 
-export async function recalculateLineItems(tx: any, items: OrderItemInput[]) {
+export async function recalculateLineItems(
+  tx: any,
+  items: OrderItemInput[],
+  options: { tenantId?: string; requireAvailableOnline?: boolean } = {}
+) {
   const orderItems = [];
   let subtotal = new Decimal(0);
 
   for (const item of items) {
-    const menuItem = await tx.menuItem.findUnique({
-      where: { id: item.menuItemId },
+    const menuItem = await tx.menuItem.findFirst({
+      where: {
+        id: item.menuItemId,
+        ...(options.tenantId ? { tenantId: options.tenantId } : {}),
+      },
       select: {
         id: true,
         name: true,
         basePrice: true,
         discountedPrice: true,
         isAvailable: true,
+        availableOnline: true,
         variantGroups: {
           select: {
             id: true,
@@ -51,6 +87,9 @@ export async function recalculateLineItems(tx: any, items: OrderItemInput[]) {
     });
 
     if (!menuItem) throw new NotFoundError('Menu item', item.menuItemId);
+    if (options.requireAvailableOnline && !menuItem.availableOnline) {
+      throw new ValidationError(`Item '${menuItem.name}' is not available for online ordering`);
+    }
     if (!menuItem.isAvailable) {
       throw new ValidationError(`Item '${menuItem.name}' is currently unavailable`);
     }

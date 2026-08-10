@@ -22,6 +22,16 @@ router.get(
   tenantController.resolve
 );
 
+router.get(
+  '/content/:slug/faqs',
+  tenantController.getFaqs
+);
+
+router.get(
+  '/content/:slug/privacy-policy',
+  tenantController.getPrivacyPolicy
+);
+
 // ── Tenant-scoped (authenticated staff) ──
 router.get(
   '/current',

@@ -96,30 +96,6 @@ app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/printer', printerRoutes);
 app.use('/api/v1/tables', tableRouter);
 
-// Test Route for triggering a print job to the POS device!
-app.get('/api/v1/test-print', async (req, res) => {
-  try {
-    const { getIO } = await import('./modules/printer/printer.socket');
-    const io = getIO();
-
-    // In production, we'd look up the socketId from the DB using the deviceId
-    // For this test, we broadcast to the room or just globally if only 1 device is connected
-    io.emit('print:job', {
-      id: 'job-12345',
-      type: 'receipt',
-      payload: {
-        orderId: '101010',
-        total: 550,
-        items: [{ name: 'Test Burger', qty: 1 }]
-      }
-    });
-
-    res.json({ success: true, message: 'Print job dispatched to socket.io!' });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ── 404 Handler ──
 app.use((_req, res) => {
   res.status(404).json({

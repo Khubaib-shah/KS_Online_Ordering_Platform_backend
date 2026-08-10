@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { logger } from '../../config/logger';
 import { prisma } from '../../config/database';
+import { env } from '../../config/env';
 
 let io: Server;
 
@@ -19,7 +20,9 @@ const pendingDevices = new Map<string, {
 export const initSocketIO = (server: HttpServer) => {
   io = new Server(server, {
     cors: {
-      origin: '*', // Adjust based on security requirements
+      // Only allow the configured dashboard origins; the desktop printer
+      // service sends no Origin header and is unaffected by this.
+      origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
       methods: ['GET', 'POST']
     }
   });
@@ -39,6 +42,32 @@ export const initSocketIO = (server: HttpServer) => {
     }) => {
       try {
         const { deviceId, tenantId, branchId, computerName, version, os, localIp } = data;
+
+        if (!deviceId || !tenantId || !branchId) {
+          socket.emit('error', { message: 'deviceId, tenantId and branchId are required' });
+          return;
+        }
+
+        // Server-side validation — never trust client-supplied tenant/branch.
+        const branch = await prisma.branch.findFirst({
+          where: { id: branchId, tenantId },
+          select: { id: true },
+        });
+        if (!branch) {
+          socket.emit('error', { message: 'Invalid tenant/branch combination' });
+          return;
+        }
+
+        // Anti-hijack: a deviceId already paired to a different tenant/branch
+        // must not be able to take over this socket slot.
+        const existing = await prisma.posDevice.findUnique({
+          where: { deviceId },
+          select: { tenantId: true, branchId: true },
+        });
+        if (existing && (existing.tenantId !== tenantId || existing.branchId !== branchId)) {
+          socket.emit('error', { message: 'Device is already paired to a different branch. Unpair it first.' });
+          return;
+        }
 
         await prisma.posDevice.upsert({
           where: { deviceId },
@@ -108,6 +137,39 @@ export const initSocketIO = (server: HttpServer) => {
         });
       } catch (error) {
         // Ignore heartbeat errors if device deleted
+      }
+    });
+
+    // Printer service reports the outcome of a dispatched print job
+    socket.on('print:status', async (data: { jobId: string; status: string; error?: string }) => {
+      try {
+        if (!data.jobId || !data.status) return;
+
+        const job = await prisma.printJob.findUnique({
+          where: { id: data.jobId },
+        });
+        if (!job) return;
+
+        await prisma.printJob.update({
+          where: { id: data.jobId },
+          data: { status: data.status, error: data.error || null },
+        });
+
+        // Archive the outcome for audit/reporting
+        await prisma.printHistory.create({
+          data: {
+            tenantId: job.tenantId,
+            branchId: job.branchId,
+            type: job.type,
+            status: data.status,
+            payload: job.payload as any,
+            error: data.error || null,
+          },
+        });
+
+        logger.info(`Print job ${data.jobId} -> ${data.status}`);
+      } catch (error: any) {
+        logger.error('Error recording print status:', error?.message || error);
       }
     });
 

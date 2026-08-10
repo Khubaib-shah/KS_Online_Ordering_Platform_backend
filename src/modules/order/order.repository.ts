@@ -1,6 +1,7 @@
 // ─── Order Repository ───────────────────────────────────────────────
 
 import { prisma } from '../../config/database';
+import { NotFoundError } from '../../lib/errors';
 
 const ORDER_SELECT = {
   id: true,
@@ -85,9 +86,16 @@ export const orderRepository = {
     });
   },
 
-  async findById(id: string, tenantId: string) {
+  async findById(idOrOrderNumber: string, tenantId: string) {
+    // Accept both UUID and human-readable order number (e.g. GK-XXXXXX) so
+    // the dashboard can fetch an order for printing/tracking by number.
+    const byId = await prisma.order.findFirst({
+      where: { id: idOrOrderNumber, tenantId },
+      select: ORDER_SELECT,
+    });
+    if (byId) return byId;
     return prisma.order.findFirst({
-      where: { id, tenantId },
+      where: { orderNumber: idOrOrderNumber, tenantId },
       select: ORDER_SELECT,
     });
   },
@@ -101,7 +109,7 @@ export const orderRepository = {
 
   async delete(id: string, tenantId: string) {
     const existing = await prisma.order.findFirst({ where: { id, tenantId } });
-    if (!existing) throw new Error('Order not found');
+    if (!existing) throw new NotFoundError('Order', id);
     return prisma.order.delete({
       where: { id },
     });
@@ -135,7 +143,15 @@ export const orderRepository = {
     if (filters.startDate || filters.endDate) {
       where.createdAt = {};
       if (filters.startDate) where.createdAt.gte = new Date(filters.startDate);
-      if (filters.endDate) where.createdAt.lte = new Date(filters.endDate);
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        // A date-only value (YYYY-MM-DD) should include the whole end day
+        if (/^\d{4}-\d{2}-\d{2}$/.test(filters.endDate)) {
+          end.setDate(end.getDate() + 1);
+          end.setMilliseconds(-1);
+        }
+        where.createdAt.lte = end;
+      }
     }
     if (filters.cashierId) where.createdById = filters.cashierId;
     if (filters.createdById) where.createdById = filters.createdById;
@@ -173,10 +189,26 @@ export const orderRepository = {
 
   async updateStatus(id: string, tenantId: string, status: string, timeline: any[]) {
     const existing = await prisma.order.findFirst({ where: { id, tenantId } });
-    if (!existing) throw new Error('Order not found');
+    if (!existing) throw new NotFoundError('Order', id);
     return prisma.order.update({
       where: { id },
       data: { status: status as any, statusTimeline: timeline },
+      select: ORDER_SELECT,
+    });
+  },
+
+  async updatePayment(id: string, tenantId: string, data: { paymentStatus: 'PAID' | 'UNPAID'; paymentMethod?: string; timeline?: any[] }) {
+    const existing = await prisma.order.findFirst({ where: { id, tenantId } });
+    if (!existing) throw new NotFoundError('Order', id);
+    return prisma.order.update({
+      where: { id },
+      data: {
+        paymentStatus: data.paymentStatus,
+        ...(data.paymentMethod
+          ? { paymentMethod: data.paymentMethod as any }
+          : {}),
+        ...(data.timeline ? { statusTimeline: data.timeline } : {}),
+      },
       select: ORDER_SELECT,
     });
   },

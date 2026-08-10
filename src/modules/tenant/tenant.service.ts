@@ -23,6 +23,22 @@ export const tenantService = {
     return tenant;
   },
 
+  async getFaqs(slug: string) {
+    const cacheKey = `tenant:faqs:${slug}`;
+    return cacheGetOrSet(cacheKey, async () => {
+      const faqs = await tenantRepository.getFaqsBySlug(slug);
+      return faqs || null;
+    }, 300);
+  },
+
+  async getPrivacyPolicy(slug: string) {
+    const cacheKey = `tenant:privacy:${slug}`;
+    return cacheGetOrSet(cacheKey, async () => {
+      const policy = await tenantRepository.getPrivacyPolicyBySlug(slug);
+      return policy || null;
+    }, 300);
+  },
+
   async getById(id: string) {
     const tenant = await tenantRepository.findById(id);
     if (!tenant) throw new NotFoundError('Tenant', id);

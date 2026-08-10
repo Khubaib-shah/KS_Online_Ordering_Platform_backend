@@ -43,19 +43,23 @@ async function main() {
   });
 
   // 2. Create Super Admin
-  const superAdminPassword = await bcrypt.hash('Password123!', 12);
+  // Credential is read from env (SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD) so the
+  // seed log never exposes a plaintext password. Defaults are only used locally.
+  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'syedkhubaibshah@icloud.com';
+  const superAdminPasswordPlain = process.env.SUPER_ADMIN_PASSWORD || 'Password123!';
+  const superAdminPassword = await bcrypt.hash(superAdminPasswordPlain, 12);
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'syedkhubaibshah@icloud.com' },
+    where: { email: superAdminEmail },
     update: {},
     create: {
-      email: 'syedkhubaibshah@icloud.com',
+      email: superAdminEmail,
       passwordHash: superAdminPassword,
       name: 'Super Admin',
       globalRole: 'SUPER_ADMIN',
       tenantId: null,
     },
   });
-  console.log(`  ✅ Super Admin: syedkhubaibshah@icloud.com / Password123!`);
+  console.log(`  ✅ Super Admin ready: ${superAdminEmail} (password set via env)`);
 
   console.log('\n🎉 Seed complete!');
 }

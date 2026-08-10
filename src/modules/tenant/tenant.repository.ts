@@ -58,8 +58,6 @@ const CONTENT_SELECT = {
   footerConfig: true,
   copyConfig: true,
   heroSlides: true,
-  faqs: true,
-  privacyPolicy: true,
   seoTitle: true,
   seoDescription: true,
   seoKeywords: true,
@@ -100,18 +98,58 @@ const TENANT_COMPLETE_SELECT = {
   },
 };
 
+const TENANT_RESOLVE_SELECT = {
+  ...TENANT_PUBLIC_SELECT,
+  settings: { select: SETTINGS_PUBLIC_SELECT },
+  theme: { select: THEME_SELECT },
+  content: { select: CONTENT_SELECT },
+  branches: {
+    where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      phone: true,
+      mapsUrl: true,
+    },
+  },
+};
+
 export const tenantRepository = {
   async resolveBySlug(slug: string) {
     return prisma.tenant.findUnique({
       where: { slug },
-      select: TENANT_COMPLETE_SELECT,
+      select: TENANT_RESOLVE_SELECT,
     });
   },
 
   async resolveByDomain(domain: string) {
     return prisma.tenant.findUnique({
       where: { customDomain: domain },
-      select: TENANT_COMPLETE_SELECT,
+      select: TENANT_RESOLVE_SELECT,
+    });
+  },
+
+  async getFaqsBySlug(slug: string) {
+    return prisma.tenantFaqPage.findFirst({
+      where: { tenant: { slug } },
+      include: {
+        faqs: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' }
+        }
+      }
+    });
+  },
+
+  async getPrivacyPolicyBySlug(slug: string) {
+    return prisma.tenantPrivacyPolicy.findFirst({
+      where: { tenant: { slug } },
+      include: {
+        sections: {
+          orderBy: { sortOrder: 'asc' }
+        }
+      }
     });
   },
 

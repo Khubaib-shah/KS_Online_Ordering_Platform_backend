@@ -1,5 +1,6 @@
 // ─── Branch Service ─────────────────────────────────────────────────
 import { branchRepository } from './branch.repository';
+import { enforcePlanLimit } from '../../lib/plan-limits';
 
 export const branchService = {
   async list(tenantId: string) {
@@ -7,6 +8,7 @@ export const branchService = {
   },
 
   async create(tenantId: string, data: any) {
+    await enforcePlanLimit(tenantId, 'BRANCH');
     return branchRepository.create(tenantId, data);
   },
 

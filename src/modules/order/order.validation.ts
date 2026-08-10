@@ -50,6 +50,11 @@ export const updateOrderStatusSchema = z.object({
   notes: z.string().optional(),
 });
 
+export const updatePaymentStatusSchema = z.object({
+  paymentStatus: z.enum(['PAID', 'UNPAID']),
+  paymentMethod: z.enum(['CASH', 'COD', 'CARD', 'ONLINE', 'WALLET', 'BANK_TRANSFER', 'LOYALTY_POINTS']).optional(),
+});
+
 export const listOrdersQuerySchema = z.object({
   branchId: z.string().uuid().optional(),
   status: z.string().optional(),

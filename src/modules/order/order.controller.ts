@@ -46,21 +46,10 @@ export const orderController = {
     try {
       const { page, limit } = parsePagination(req.query);
       const { branchId, status, channel, search, startDate, endDate } = req.query as any;
-      
-      let createdById: string | undefined;
-
-      if (req.user && req.user.globalRole !== 'SUPER_ADMIN') {
-        const staffProfile = await prisma.staffProfile.findUnique({
-          where: { userId: req.user.userId },
-          include: { role: true },
-        });
-
-
-      }
 
       const { orders, total, statusCounts } = await orderService.listOrders(
         req.tenantId!,
-        { branchId, status, channel, search, startDate, endDate, createdById },
+        { branchId, status, channel, search, startDate, endDate },
         page,
         limit
       );
@@ -97,6 +86,19 @@ export const orderController = {
         if (user) author = user.name;
       }
       const order = await orderService.updateStatus(req.params.id, req.tenantId!, status, notes, author);
+      sendSuccess(res, order);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async updatePayment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { paymentStatus, paymentMethod } = req.body;
+      const order = await orderService.updatePaymentStatus(req.params.id, req.tenantId!, {
+        paymentStatus,
+        paymentMethod,
+      });
       sendSuccess(res, order);
     } catch (error) {
       next(error);

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { LocationController } from './location.controller';
+import { authRequired, superAdminOnly } from '../../middlewares/auth.middleware';
 
 const router = Router();
 const locationController = new LocationController();
@@ -8,7 +9,8 @@ const locationController = new LocationController();
 router.get('/cities', locationController.getTenantCities);
 router.get('/cities/:cityId/areas', locationController.getTenantCityAreas);
 
-// Super Admin routes (Note: middleware like requireSuperAdmin should be added if not already globally applied for /superadmin routes)
+// Super Admin routes — protected by auth + role check
+router.use('/admin', authRequired, superAdminOnly);
 router.get('/admin/cities', locationController.getAllCities);
 router.post('/admin/cities', locationController.createCity);
 router.put('/admin/cities/:id', locationController.updateCity);

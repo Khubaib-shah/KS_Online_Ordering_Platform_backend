@@ -11,6 +11,7 @@ import {
   createWebsiteOrderSchema,
   createPosOrderSchema,
   updateOrderStatusSchema,
+  updatePaymentStatusSchema,
   listOrdersQuerySchema,
   guestOrderTrackingSchema,
 } from './order.validation';
@@ -84,6 +85,16 @@ router.patch(
   requirePermission('orders', 'Edit'),
   validate({ body: updateOrderStatusSchema }),
   orderController.updateStatus
+);
+
+// Mark an order as paid/unpaid (manual reconciliation — COD, dine-in, etc.)
+router.patch(
+  '/orders/:id/payment',
+  authRequired,
+  tenantResolver(),
+  requirePermission('orders', 'Edit'),
+  validate({ body: updatePaymentStatusSchema }),
+  orderController.updatePayment
 );
 
 export default router;

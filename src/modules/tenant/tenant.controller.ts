@@ -19,6 +19,28 @@ export const tenantController = {
     }
   },
 
+  async getFaqs(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const slug = req.params.slug;
+      if (!slug) throw new Error("Slug is required");
+      const faqs = await tenantService.getFaqs(slug);
+      sendSuccess(res, faqs);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async getPrivacyPolicy(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const slug = req.params.slug;
+      if (!slug) throw new Error("Slug is required");
+      const policy = await tenantService.getPrivacyPolicy(slug);
+      sendSuccess(res, policy);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async listGlobalAreas(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const areas = await superadminService.listGlobalAreas();
