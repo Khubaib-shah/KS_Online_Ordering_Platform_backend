@@ -5,6 +5,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
+import { PLATFORM_NAME } from '../config/constants';
 import { sendError } from '../lib/api-response';
 
 export interface JwtPayload {
@@ -25,7 +26,7 @@ declare global {
 export function authRequired(req: Request, res: Response, next: NextFunction): void {
   try {
     // 1. Try httpOnly cookie first (preferred — not accessible from JS)
-    let token = req.cookies?.indolj_token;
+    let token = req.cookies?.[`${PLATFORM_NAME.toLowerCase()}_token`];
 
     // 2. Fallback to Authorization header (backward compatibility)
     if (!token) {

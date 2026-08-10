@@ -44,17 +44,17 @@ async function main() {
     // 2. Create Super Admin
     const superAdminPassword = await bcryptjs_1.default.hash('superadmin123', 12);
     const superAdmin = await prisma.user.upsert({
-        where: { email: 'admin@indolj.com' },
+        where: { email: 'admin@ks.com' },
         update: {},
         create: {
-            email: 'admin@indolj.com',
+            email: 'admin@ks.com',
             passwordHash: superAdminPassword,
             name: 'Super Admin',
             globalRole: 'SUPER_ADMIN',
             tenantId: null,
         },
     });
-    console.log(`  ✅ Super Admin: admin@indolj.com / superadmin123`);
+    console.log(`  ✅ Super Admin: admin@ks.com / superadmin123`);
     // 3. Create Demo Restaurant Tenant
     const demoTenant = await prisma.tenant.upsert({
         where: { slug: 'demo-restaurant' },
@@ -316,7 +316,7 @@ async function main() {
     console.log('  ✅ Demo categories, menu items, and promotions created');
     console.log('\n🎉 Seed complete!');
     console.log('\n📋 Login Credentials:');
-    console.log('  Super Admin:  admin@indolj.com / superadmin123');
+    console.log('  Super Admin:  admin@ks.com / superadmin123');
     console.log('  Demo Owner:   owner@gourmethaven.pk / owner123');
     console.log('  Demo Tenant:  slug = "demo-restaurant"');
 }

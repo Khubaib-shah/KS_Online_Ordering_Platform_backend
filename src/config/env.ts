@@ -40,7 +40,7 @@ if (
 // Production safety: refuse to boot with a known/placeholder JWT secret.
 // JWT forgery with the dev secret would compromise every tenant.
 const DEV_JWT_SECRETS = [
-  'indolj-super-secret-jwt-key-dev-only-change-in-prod',
+  'ks-super-secret-jwt-key-dev-only-change-in-prod',
   'change-me',
   'secret',
 ];

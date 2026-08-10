@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 import { authService } from './auth.service';
 import { sendSuccess } from '../../lib/api-response';
 import { env } from '../../config/env';
+import { PLATFORM_NAME } from '../../config/constants';
 
 // Cookie configuration for JWT storage
 const COOKIE_OPTIONS = {
@@ -21,7 +22,7 @@ export const authController = {
       const result = await authService.login(email, password, tenantSlug);
 
       // Set JWT as httpOnly cookie — not accessible from JavaScript
-      res.cookie('indolj_token', result.token, COOKIE_OPTIONS);
+      res.cookie(`${PLATFORM_NAME.toLowerCase()}_token`, result.token, COOKIE_OPTIONS);
 
       // Return user data (without token in body for new clients, but keep for backward compat)
       sendSuccess(res, { token: result.token, user: result.user });
@@ -45,7 +46,7 @@ export const authController = {
         await authService.logout(req.user.userId);
       }
       // Clear the auth cookie
-      res.clearCookie('indolj_token', {
+      res.clearCookie(`${PLATFORM_NAME.toLowerCase()}_token`, {
         httpOnly: true,
         secure: env.NODE_ENV === 'production',
         sameSite: env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
