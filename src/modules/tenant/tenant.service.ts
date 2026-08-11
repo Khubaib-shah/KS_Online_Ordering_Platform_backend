@@ -185,7 +185,7 @@ export const tenantService = {
         where: {
           tenantId: id,
           staffProfile: {
-            designation: 'OWNER',
+            isOwner: true,
           },
         },
       });
