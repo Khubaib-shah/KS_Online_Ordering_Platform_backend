@@ -20,16 +20,16 @@ model User {
 }
 
 model StaffProfile {
-  id                 String          @id @default(uuid())
-  userId             String          @unique @map("user_id")
-  branchId           String?         @map("branch_id")
-  isOwner            Boolean         @default(false) @map("is_owner")
-  roleId             String?         @map("role_id")
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
-  branch             Branch?         @relation(fields: [branchId], references: [id])
-  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role               Role?           @relation(fields: [roleId], references: [id])
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  branchId  String?  @map("branch_id")
+  isOwner   Boolean  @default(false) @map("is_owner")
+  roleId    String?  @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role?    @relation(fields: [roleId], references: [id])
 
   @@index([branchId])
   @@index([userId])
@@ -43,19 +43,19 @@ enum GlobalRole {
 }
 
 model CashierShift {
-  id          String    @id @default(uuid())
-  tenantId    String    @map("tenant_id")
-  branchId    String?   @map("branch_id")
-  userId      String    @map("user_id")
-  startTime   DateTime  @default(now()) @map("start_time")
-  endTime     DateTime? @map("end_time")
-  status      String    @default("OPEN") @db.VarChar(50)
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id        String    @id @default(uuid())
+  tenantId  String    @map("tenant_id")
+  branchId  String?   @map("branch_id")
+  userId    String    @map("user_id")
+  startTime DateTime  @default(now()) @map("start_time")
+  endTime   DateTime? @map("end_time")
+  status    String    @default("OPEN") @db.VarChar(50)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
-  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  branch      Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([branchId])
@@ -72,7 +72,7 @@ model Role {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   staffProfiles StaffProfile[]
 
   @@index([tenantId])

@@ -1,0 +1,24 @@
+model TenantLocation {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  locationType String   @map("location_type") @db.VarChar(50) // "CITY", "ZONE", "AREA"
+  cityId       String?  @map("city_id")
+  zoneId       String?  @map("zone_id")
+  areaId       String?  @map("area_id")
+  isAssigned   Boolean  @default(true) @map("is_assigned")
+  isEnabled    Boolean  @default(true) @map("is_enabled")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  city   City?  @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  zone   Zone?  @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  area   Area?  @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, locationType, cityId, zoneId, areaId])
+  @@index([tenantId])
+  @@index([cityId])
+  @@index([zoneId])
+  @@index([areaId])
+  @@map("tenant_locations")
+}

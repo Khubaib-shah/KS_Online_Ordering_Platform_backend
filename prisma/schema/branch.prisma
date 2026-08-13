@@ -1,34 +1,34 @@
 model Branch {
-  id            String         @id @default(uuid())
-  tenantId        String           @map("tenant_id")
-  cityId          String?          @map("city_id")
-  name            String           @db.VarChar(255)
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  cityId          String?  @map("city_id")
+  name            String   @db.VarChar(255)
   address         String
-  mapsUrl         String?          @map("maps_url")
-  phone           String?          @db.VarChar(50)
-  deliveryEnabled Boolean          @default(true) @map("delivery_enabled")
-  pickupEnabled   Boolean          @default(true) @map("pickup_enabled")
+  mapsUrl         String?  @map("maps_url")
+  phone           String?  @db.VarChar(50)
+  deliveryEnabled Boolean  @default(true) @map("delivery_enabled")
+  pickupEnabled   Boolean  @default(true) @map("pickup_enabled")
   latitude        Float?
   longitude       Float?
-  isDefault       Boolean          @default(false) @map("is_default")
-  isActive        Boolean          @default(true) @map("is_active")
-  openingTime     String?          @map("opening_time") @db.VarChar(10)
-  closingTime     String?          @map("closing_time") @db.VarChar(10)
-  timezone        String           @default("UTC") @db.VarChar(100)
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-  
+  isDefault       Boolean  @default(false) @map("is_default")
+  isActive        Boolean  @default(true) @map("is_active")
+  openingTime     String?  @map("opening_time") @db.VarChar(10)
+  closingTime     String?  @map("closing_time") @db.VarChar(10)
+  timezone        String   @default("UTC") @db.VarChar(100)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
   tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   city            City?            @relation(fields: [cityId], references: [id])
   branchCoverages BranchCoverage[]
-  orders        Order[]
-  posDevices    PosDevice[]
-  printHistory  PrintHistory[]
-  printJobs     PrintJob[]
-  printers      Printer[]
-  staffProfiles StaffProfile[]
-  tables        Table[]
-  cashierShifts CashierShift[]
+  orders          Order[]
+  posDevices      PosDevice[]
+  printHistory    PrintHistory[]
+  printJobs       PrintJob[]
+  printers        Printer[]
+  staffProfiles   StaffProfile[]
+  tables          Table[]
+  cashierShifts   CashierShift[]
 
   @@index([tenantId])
   @@map("branches")
@@ -44,8 +44,8 @@ model BranchCoverage {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  branch           Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  area             Area     @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  area   Area   @relation(fields: [areaId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, areaId])
   @@index([branchId])
@@ -62,12 +62,11 @@ model Table {
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-  
-  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
-  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([branchId, tableNumber])
   @@index([tenantId, branchId])
   @@map("tables")
 }
-

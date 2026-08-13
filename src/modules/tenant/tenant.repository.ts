@@ -11,11 +11,13 @@ const TENANT_PUBLIC_SELECT = {
   customDomain: true,
   domainVerified: true,
   businessType: true,
+  planId: true,
   status: true,
   defaultLocale: true,
   supportedLocales: true,
   isRtl: true,
   createdAt: true,
+  updatedAt: true,
 };
 
 const SETTINGS_PUBLIC_SELECT = {
@@ -74,6 +76,7 @@ const TENANT_COMPLETE_SELECT = {
   theme: { select: THEME_SELECT },
   content: { select: CONTENT_SELECT },
   users: {
+    where: { staffProfile: { isOwner: true } },
     select: {
       name: true,
       email: true,
@@ -86,6 +89,37 @@ const TENANT_COMPLETE_SELECT = {
       },
     },
   },
+  faqPage: {
+    select: {
+      title: true,
+      description: true,
+      faqs: {
+        orderBy: { sortOrder: 'asc' as const },
+        select: {
+          id: true,
+          question: true,
+          answer: true,
+          sortOrder: true,
+          isActive: true,
+        },
+      },
+    },
+  },
+  privacyPolicy: {
+    select: {
+      title: true,
+      description: true,
+      sections: {
+        orderBy: { sortOrder: 'asc' as const },
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          sortOrder: true,
+        },
+      },
+    },
+  },
   branches: {
     where: { isActive: true },
     select: {
@@ -94,6 +128,14 @@ const TENANT_COMPLETE_SELECT = {
       address: true,
       phone: true,
       mapsUrl: true,
+    },
+  },
+  tenantLocations: {
+    select: {
+      locationType: true,
+      cityId: true,
+      zoneId: true,
+      areaId: true,
     },
   },
 };
@@ -111,6 +153,14 @@ const TENANT_RESOLVE_SELECT = {
       address: true,
       phone: true,
       mapsUrl: true,
+    },
+  },
+  tenantLocations: {
+    select: {
+      locationType: true,
+      cityId: true,
+      zoneId: true,
+      areaId: true,
     },
   },
 };
@@ -198,10 +248,11 @@ export const tenantRepository = {
   },
 
   async updateContent(tenantId: string, data: Record<string, any>) {
+    const { faqs, privacyPolicy, ...contentData } = data;
     return prisma.tenantContent.upsert({
       where: { tenantId },
-      update: data,
-      create: { tenantId, ...data },
+      update: contentData,
+      create: { tenantId, ...contentData },
       select: CONTENT_SELECT,
     });
   },
@@ -237,7 +288,80 @@ export const tenantRepository = {
     });
   },
 
+  async findPlanById(planId: string) {
+    return prisma.platformPlan.findUnique({
+      where: { id: planId },
+      select: { id: true },
+    });
+  },
+
+  async upsertFaqPage(tenantId: string, faqs: any, client: any = prisma) {
+    const title = faqs?.title;
+    const description = faqs?.intro;
+    const items = Array.isArray(faqs?.items) ? faqs.items : [];
+
+    const page = await client.tenantFaqPage.upsert({
+      where: { tenantId },
+      update: {
+        title: title ?? undefined,
+        description: description ?? undefined,
+      },
+      create: { tenantId, title: title ?? undefined, description: description ?? undefined },
+    });
+
+    if (items.length > 0 || faqs?.items) {
+      await client.tenantFaqItem.deleteMany({ where: { pageId: page.id } });
+      if (items.length > 0) {
+        await client.tenantFaqItem.createMany({
+          data: items.map((item: any, index: number) => ({
+            pageId: page.id,
+            question: item.question || '',
+            answer: item.answer || '',
+            sortOrder: item.sortOrder ?? index,
+            isActive: item.isActive ?? true,
+          })),
+        });
+      }
+    }
+
+    return page;
+  },
+
+  async upsertPrivacyPolicy(tenantId: string, policy: any, client: any = prisma) {
+    const title = policy?.title;
+    const description = policy?.intro;
+    const sections = Array.isArray(policy?.sections) ? policy.sections : [];
+
+    const page = await client.tenantPrivacyPolicy.upsert({
+      where: { tenantId },
+      update: {
+        title: title ?? undefined,
+        description: description ?? undefined,
+      },
+      create: { tenantId, title: title ?? undefined, description: description ?? undefined },
+    });
+
+    if (sections.length > 0 || policy?.sections) {
+      await client.tenantPrivacyPolicySection.deleteMany({ where: { policyId: page.id } });
+      if (sections.length > 0) {
+        await client.tenantPrivacyPolicySection.createMany({
+          data: sections.map((section: any, index: number) => ({
+            policyId: page.id,
+            title: section.title || '',
+            content: section.content || '',
+            sortOrder: section.sortOrder ?? index,
+          })),
+        });
+      }
+    }
+
+    return page;
+  },
+
   async transaction<T>(fn: (tx: any) => Promise<T>): Promise<T> {
-    return prisma.$transaction(fn);
+    return prisma.$transaction(fn, {
+      maxWait: 5000,
+      timeout: 20000,
+    });
   },
 };

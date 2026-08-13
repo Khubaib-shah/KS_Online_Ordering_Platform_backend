@@ -15,13 +15,18 @@ export const createTenantSchema = z.object({
   businessType: z.enum([
     'RESTAURANT', 'FAST_FOOD', 'CAFE', 'ICE_CREAM_PARLOUR', 'BAKERY', 'CLOUD_KITCHEN', 'RETAIL',
   ]),
-  planId: z.string().uuid().optional(),
+  planId: z.string().min(1).optional(),
+  customDomain: z.string().max(255).optional().nullable(),
+  domainVerified: z.boolean().optional(),
   ownerEmail: z.string().email(),
   ownerName: z.string().min(1).max(255),
   ownerPassword: z.string().min(8),
   settings: z.any().optional(),
   theme: z.any().optional(),
   content: z.any().optional(),
+  faqPage: z.any().optional(),
+  privacyPolicy: z.any().optional(),
+  locationAssignments: z.any().optional(),
 });
 
 export const updateTenantSchema = z.object({
@@ -30,9 +35,19 @@ export const updateTenantSchema = z.object({
   businessType: z.enum([
     'RESTAURANT', 'FAST_FOOD', 'CAFE', 'ICE_CREAM_PARLOUR', 'BAKERY', 'CLOUD_KITCHEN', 'RETAIL',
   ]).optional(),
+  planId: z.string().min(1).optional().nullable(),
+  customDomain: z.string().max(255).optional().nullable(),
+  domainVerified: z.boolean().optional(),
+  defaultLocale: z.string().min(2).max(10).optional(),
+  supportedLocales: z.array(z.string().min(2).max(10)).optional(),
+  isRtl: z.boolean().optional(),
   ownerEmail: z.string().email().optional(),
   ownerName: z.string().min(1).max(255).optional(),
   ownerPassword: z.string().min(8).optional(),
+  settings: z.any().optional(),
+  theme: z.any().optional(),
+  content: z.any().optional(),
+  locationAssignments: z.any().optional(),
 });
 
 export const updateTenantSettingsSchema = z.object({
@@ -87,5 +102,10 @@ export const updateTenantContentSchema = z.object({
   privacyPolicy: z.any().optional(),
   seoTitle: z.string().max(255).optional(),
   seoDescription: z.string().optional(),
+  seoKeywords: z.array(z.string()).optional(),
+  noIndex: z.boolean().optional(),
+  ogImageUrl: z.string().optional().nullable(),
+  gaMeasurementId: z.string().optional().nullable(),
+  gscVerification: z.string().optional().nullable(),
   activePromo: z.any().optional(),
 });

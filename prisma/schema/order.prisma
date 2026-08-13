@@ -21,6 +21,8 @@ model Order {
   specialInstructions  String?         @map("special_instructions")
   privateKitchenNotes  String?         @map("private_kitchen_notes")
   statusTimeline       Json?           @map("status_timeline")
+  cityId               String?         @map("city_id")
+  zoneId               String?         @map("zone_id")
   areaId               String?         @map("area_id")
   createdById          String?         @map("created_by_id")
   createdAt            DateTime        @default(now()) @map("created_at")
@@ -29,6 +31,8 @@ model Order {
   branch               Branch          @relation(fields: [branchId], references: [id])
   customer             Customer?       @relation(fields: [customerId], references: [id])
   tenant               Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  city                 City?           @relation(fields: [cityId], references: [id])
+  zone                 Zone?           @relation(fields: [zoneId], references: [id])
   area                 Area?           @relation(fields: [areaId], references: [id])
   createdBy            User?           @relation("OrderCreatedBy", fields: [createdById], references: [id])
 

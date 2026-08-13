@@ -6,8 +6,7 @@ import { NotFoundError, ValidationError } from '../../lib/errors';
 import { Decimal } from '@prisma/client/runtime/library';
 import { generateOrderNumber, recalculateLineItems, createOrderWithRetry, OrderItemInput } from './order.helper';
 import { printJobService } from '../printer/print-job.service';
-
-
+import { deliveryResolutionService } from '../location/delivery-resolution.service';
 
 export const orderService = {
   /**
@@ -24,6 +23,8 @@ export const orderService = {
     deliveryInstructions?: string | null;
     specialInstructions?: string | null;
     promoCode?: string | null;
+    cityId?: string | null;
+    zoneId?: string | null;
     areaId?: string | null;
   }) {
     const order = await orderRepository.transaction(async (tx) => {
@@ -39,16 +40,13 @@ export const orderService = {
         if (!branch) throw new NotFoundError('Branch', branchId);
       }
 
-      if (!branchId && data.fulfillmentType === 'DELIVERY' && data.areaId) {
-        const coverage = await tx.branchCoverage.findFirst({
-          where: {
-            areaId: data.areaId,
-            branch: { tenantId, deliveryEnabled: true, isActive: true }
-          },
-          select: { branchId: true }
-        });
-        if (!coverage) throw new NotFoundError('Delivery coverage for selected area');
-        branchId = coverage.branchId;
+      if (!branchId && data.fulfillmentType === 'DELIVERY' && data.cityId && data.zoneId && data.areaId) {
+        // Validate effective location access and get eligible branches
+        await deliveryResolutionService.validateDeliveryLocation(tenantId, data.cityId, data.zoneId, data.areaId);
+        
+        const branch = await deliveryResolutionService.resolveDeliveryBranch(tenantId, data.areaId);
+        if (!branch) throw new NotFoundError('Delivery coverage for selected area');
+        branchId = branch.branchId;
       }
 
       if (!branchId) {
@@ -190,6 +188,8 @@ export const orderService = {
         nearestLandmark: data.nearestLandmark,
         deliveryInstructions: data.deliveryInstructions,
         specialInstructions: data.specialInstructions,
+        cityId: data.cityId,
+        zoneId: data.zoneId,
         areaId: data.areaId,
         statusTimeline: [{ status: 'PENDING', timestamp: new Date().toISOString(), author: `Customer (${data.customer.name})` }],
         items: { create: orderItems },

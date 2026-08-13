@@ -12,6 +12,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "ts-node --transpile-only prisma/seed.ts",
+    "migrate:delivery-locations": "ts-node --transpile-only scripts/migrate-delivery-locations.ts",
     "test": "jest"
   },
   "keywords": [],
@@ -27,7 +28,7 @@
     "@types/helmet": "^0.0.48",
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.2.0",
-    "@types/node": "*",
+    "@types/node": "^26.2.0",
     "@types/pino-http": "^5.8.4",
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",

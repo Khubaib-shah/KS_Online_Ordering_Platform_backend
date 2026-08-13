@@ -1,94 +1,80 @@
 import { prisma } from "../../config/database";
 
+import { tenantLocationService } from './tenant-location.service';
+
 export class LocationService {
   async getTenantCities(tenantId: string) {
-    // A tenant is associated with cities through the many-to-many relationship
-    // Since we just added this, we'll query cities where the tenants array includes this tenantId
-    const cities = await prisma.city.findMany({
-      where: {
-        isActive: true,
-        deletedAt: null,
-        tenants: {
-          some: {
-            id: tenantId,
-          },
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-      },
-      orderBy: {
-        name: 'asc',
-      },
-    });
-
-    return cities;
+    const access = await tenantLocationService.getTenantEffectiveLocationAccess(tenantId);
+    
+    // We also need to ensure at least one area in the city has branch coverage.
+    // However, for simplicity of the city dropdown, we can just return the effective cities.
+    // The storefront will handle empty zones/areas.
+    return access.cities.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug
+    })).sort((a: any, b: any) => a.name.localeCompare(b.name));
   }
 
   async getTenantCityAreas(tenantId: string, cityId: string) {
-    // Return areas grouped by zone, ONLY if the area is covered by at least one
-    // delivery-enabled branch belonging to this tenant.
+    const access = await tenantLocationService.getTenantEffectiveLocationAccess(tenantId);
+    const city = access.cities.find((c: any) => c.id === cityId);
+    
+    if (!city) return [];
 
-    // First, find all branch coverages for this tenant in the specified city
+    // Pre-fetch all branch coverages for this tenant in this city to avoid N+1 queries
     const activeCoverages = await prisma.branchCoverage.findMany({
       where: {
         branch: {
-          tenantId: tenantId,
-          cityId: cityId,
+          tenantId,
+          cityId, // Optional filter if branches have cityId set
+          isActive: true,
           deliveryEnabled: true,
-          isActive: true,
-        },
-        area: {
-          isActive: true,
-          deletedAt: null,
         }
       },
-      include: {
-        area: {
-          include: {
-            zone: true,
-          }
-        }
+      orderBy: {
+        createdAt: 'asc'
       }
     });
 
-    // Group the results by zone
-    const zonesMap = new Map();
+    const coverageMap = new Map();
+    for (const cov of activeCoverages) {
+      if (!coverageMap.has(cov.areaId)) {
+        coverageMap.set(cov.areaId, cov);
+      }
+    }
 
-    for (const coverage of activeCoverages) {
-      const area = coverage.area;
-      if (!area || !area.zone) continue;
+    const resultZones = [];
 
-      const zoneId = area.zoneId;
-      if (!zonesMap.has(zoneId)) {
-        zonesMap.set(zoneId, {
-          zoneId: area.zone.id,
-          zone: area.zone.name,
-          areas: [],
-        });
+    for (const zone of city.zones || []) {
+      const resultAreas = [];
+
+      for (const area of zone.areas || []) {
+        const coverage = coverageMap.get(area.id);
+        
+        // According to specs: an area is deliverable ONLY IF a branch covers it.
+        if (coverage) {
+          resultAreas.push({
+            id: area.id,
+            name: area.name,
+            slug: area.slug,
+            deliveryFee: coverage.deliveryFee,
+            minimumOrder: coverage.minimumOrder,
+            estimatedMinutes: coverage.estimatedMinutes
+          });
+        }
       }
 
-      // Check if area already added to this zone
-      const zoneGroup = zonesMap.get(zoneId);
-      const existingArea = zoneGroup.areas.find((a: any) => a.id === area.id);
-
-      if (!existingArea) {
-        zoneGroup.areas.push({
-          id: area.id,
-          name: area.name,
-          slug: area.slug,
-          // Expose minimum order and delivery fee for frontend if needed, 
-          // or frontend can just fetch this during checkout. We'll provide it.
-          deliveryFee: coverage.deliveryFee,
-          minimumOrder: coverage.minimumOrder,
-          estimatedMinutes: coverage.estimatedMinutes
+      if (resultAreas.length > 0) {
+        resultZones.push({
+          zoneId: zone.id,
+          zone: zone.name,
+          areas: resultAreas
         });
       }
     }
 
-    return Array.from(zonesMap.values()).sort((a, b) => a.zone.localeCompare(b.zone));
+    return resultZones.sort((a, b) => a.zone.localeCompare(b.zone));
   }
 
   // --- Super Admin Methods ---

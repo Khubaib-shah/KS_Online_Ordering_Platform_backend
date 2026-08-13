@@ -1,6 +1,9 @@
 // ─── Branch Service ─────────────────────────────────────────────────
 import { branchRepository } from './branch.repository';
 import { enforcePlanLimit } from '../../lib/plan-limits';
+import { tenantLocationService } from '../location/tenant-location.service';
+import { NotFoundError, ValidationError, ForbiddenError } from '../../lib/errors';
+import { prisma } from '../../config/database';
 
 export const branchService = {
   async list(tenantId: string) {
@@ -25,6 +28,29 @@ export const branchService = {
   },
 
   async createZone(branchId: string, data: any) {
+    // Validate that the branch belongs to a tenant who has effective access to this area
+    const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+    if (!branch) throw new NotFoundError('Branch');
+
+    const areaId = data.areaId;
+    if (!areaId) throw new ValidationError('areaId is required for branch coverage');
+
+    const access = await tenantLocationService.getTenantEffectiveLocationAccess(branch.tenantId);
+    let hasAccess = false;
+    for (const city of access.cities) {
+      for (const zone of (city.zones || [])) {
+        if (zone.areas?.some((a: any) => a.id === areaId)) {
+          hasAccess = true;
+          break;
+        }
+      }
+      if (hasAccess) break;
+    }
+
+    if (!hasAccess) {
+      throw new ForbiddenError('Tenant does not have access to this area, so branch cannot serve it');
+    }
+
     return branchRepository.createZone(branchId, data);
   },
 
