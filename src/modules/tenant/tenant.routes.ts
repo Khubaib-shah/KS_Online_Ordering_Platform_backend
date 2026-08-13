@@ -23,6 +23,12 @@ router.get(
 );
 
 router.get(
+  '/bootstrap',
+  validate({ query: resolveTenantQuerySchema }),
+  tenantController.bootstrap
+);
+
+router.get(
   '/content/:slug/faqs',
   tenantController.getFaqs
 );

@@ -19,6 +19,16 @@ export const tenantController = {
     }
   },
 
+  async bootstrap(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { slug, domain } = req.query as { slug?: string; domain?: string };
+      const tenant = await tenantService.bootstrap(slug, domain);
+      sendSuccess(res, tenant);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getFaqs(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const slug = req.params.slug;

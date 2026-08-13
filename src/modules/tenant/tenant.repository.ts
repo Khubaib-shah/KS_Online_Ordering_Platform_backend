@@ -165,6 +165,46 @@ const TENANT_RESOLVE_SELECT = {
   },
 };
 
+const TENANT_BOOTSTRAP_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  status: true,
+  customDomain: true,
+  defaultLocale: true,
+  isRtl: true,
+  theme: {
+    select: {
+      logoUrl: true,
+      primaryColor: true,
+      accentColor: true,
+      bgColor: true,
+      backgroundMode: true,
+      backgroundImage: true
+    }
+  },
+  content: {
+    select: {
+      seoTitle: true,
+      seoDescription: true,
+      seoKeywords: true,
+      noIndex: true,
+      ogImageUrl: true,
+      gaMeasurementId: true,
+      gscVerification: true
+    }
+  },
+  branches: {
+    where: { isActive: true },
+    select: {
+      id: true,
+      name: true,
+      address: true,
+      phone: true
+    },
+  }
+};
+
 export const tenantRepository = {
   async resolveBySlug(slug: string) {
     return prisma.tenant.findUnique({
@@ -177,6 +217,20 @@ export const tenantRepository = {
     return prisma.tenant.findUnique({
       where: { customDomain: domain },
       select: TENANT_RESOLVE_SELECT,
+    });
+  },
+
+  async bootstrapBySlug(slug: string) {
+    return prisma.tenant.findUnique({
+      where: { slug },
+      select: TENANT_BOOTSTRAP_SELECT,
+    });
+  },
+
+  async bootstrapByDomain(domain: string) {
+    return prisma.tenant.findUnique({
+      where: { customDomain: domain },
+      select: TENANT_BOOTSTRAP_SELECT,
     });
   },
 

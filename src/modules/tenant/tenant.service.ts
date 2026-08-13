@@ -144,6 +144,22 @@ export const tenantService = {
     return normaliseTenant(tenant);
   },
 
+  async bootstrap(slug?: string, domain?: string) {
+    const cacheKey = slug ? `tenant:bootstrap:${slug}` : `tenant:bootstrap:domain:${domain}`;
+
+    const tenant = await cacheGetOrSet(cacheKey, async () => {
+      if (slug) return tenantRepository.bootstrapBySlug(slug);
+      if (domain) return tenantRepository.bootstrapByDomain(domain);
+      return null;
+    }, 300); // 5-minute TTL
+
+    if (!tenant) {
+      throw new NotFoundError('Tenant', slug || domain);
+    }
+
+    return tenant; // No complex relations to normalise here
+  },
+
   async getFaqs(slug: string) {
     const cacheKey = `tenant:faqs:${slug}`;
     return cacheGetOrSet(cacheKey, async () => {
@@ -319,6 +335,7 @@ export const tenantService = {
     const result = await tenantRepository.updateSettings(tenantId, data);
     await cacheInvalidateByTag(`tenant:*:${tenantId}*`);
     await cacheInvalidateByTag(`tenant:resolve:*`);
+    await cacheInvalidateByTag(`tenant:bootstrap:*`);
     return result;
   },
 
@@ -326,6 +343,7 @@ export const tenantService = {
     const result = await tenantRepository.updateTheme(tenantId, data);
     await cacheInvalidateByTag(`tenant:*:${tenantId}*`);
     await cacheInvalidateByTag(`tenant:resolve:*`);
+    await cacheInvalidateByTag(`tenant:bootstrap:*`);
     return result;
   },
 
@@ -339,6 +357,7 @@ export const tenantService = {
     }
     await cacheInvalidateByTag(`tenant:*:${tenantId}*`);
     await cacheInvalidateByTag(`tenant:resolve:*`);
+    await cacheInvalidateByTag(`tenant:bootstrap:*`);
     return result;
   },
 
