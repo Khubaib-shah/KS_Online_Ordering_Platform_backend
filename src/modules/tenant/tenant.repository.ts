@@ -205,6 +205,20 @@ const TENANT_BOOTSTRAP_SELECT = {
   }
 };
 
+function getDomainVariants(domain: string) {
+  const normalized = domain
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/+$/, '');
+
+  const stripped = normalized.startsWith('www.')
+    ? normalized.slice(4)
+    : normalized;
+
+  return [stripped, `www.${stripped}`];
+}
+
 export const tenantRepository = {
   async resolveBySlug(slug: string) {
     return prisma.tenant.findUnique({
@@ -214,8 +228,9 @@ export const tenantRepository = {
   },
 
   async resolveByDomain(domain: string) {
-    return prisma.tenant.findUnique({
-      where: { customDomain: domain },
+    const variants = getDomainVariants(domain);
+    return prisma.tenant.findFirst({
+      where: { customDomain: { in: variants } },
       select: TENANT_RESOLVE_SELECT,
     });
   },
@@ -228,8 +243,9 @@ export const tenantRepository = {
   },
 
   async bootstrapByDomain(domain: string) {
-    return prisma.tenant.findUnique({
-      where: { customDomain: domain },
+    const variants = getDomainVariants(domain);
+    return prisma.tenant.findFirst({
+      where: { customDomain: { in: variants } },
       select: TENANT_BOOTSTRAP_SELECT,
     });
   },
