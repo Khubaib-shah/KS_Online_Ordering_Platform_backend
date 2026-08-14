@@ -128,6 +128,7 @@ const TENANT_COMPLETE_SELECT = {
       address: true,
       phone: true,
       mapsUrl: true,
+      cityId: true,
     },
   },
   tenantLocations: {
@@ -153,6 +154,7 @@ const TENANT_RESOLVE_SELECT = {
       address: true,
       phone: true,
       mapsUrl: true,
+      cityId: true,
     },
   },
   tenantLocations: {
@@ -181,6 +183,15 @@ const TENANT_BOOTSTRAP_SELECT = {
       bgColor: true,
       backgroundMode: true,
       backgroundImage: true
+    }
+  },
+  settings: {
+    select: {
+      enabledPaymentMethods: true,
+      currencySymbol: true,
+      taxRate: true,
+      deliveryFee: true,
+      minOrderValue: true,
     }
   },
   content: {
