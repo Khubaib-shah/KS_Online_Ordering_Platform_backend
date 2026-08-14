@@ -7,8 +7,8 @@ const locationService = new LocationService();
 export class LocationController {
   getTenantCities = async (req: Request, res: Response) => {
     try {
-      // Assuming req.tenant is populated by tenantMiddleware for public routes
-      const tenantId = (req as any).tenant?.id || req.headers['x-tenant-id'] as string;
+      // req.tenantId is populated by the tenantResolver middleware
+      const tenantId = req.tenantId!;
 
       if (!tenantId) {
         return res.status(400).json({ success: false, error: 'Tenant ID is required' });
@@ -36,7 +36,7 @@ export class LocationController {
   getTenantCityAreas = async (req: Request, res: Response) => {
     try {
       const cityId = req.params.cityId as string;
-      const tenantId = (req as any).tenant?.id || req.headers['x-tenant-id'] as string;
+      const tenantId = req.tenantId!;
 
       if (!tenantId) {
         return res.status(400).json({ success: false, error: 'Tenant ID is required' });

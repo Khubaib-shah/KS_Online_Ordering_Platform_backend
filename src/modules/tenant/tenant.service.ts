@@ -22,15 +22,12 @@ function normaliseTenant(tenant: any): any {
     locationAssignments: tenantLocations ?? [],
     faqPage: faqPage ? {
       ...faqPage,
-      intro: faqPage.description,
     } : null,
     privacyPolicy: privacyPolicy ? {
       ...privacyPolicy,
-      intro: privacyPolicy.description,
+      
       sections: privacyPolicy.sections?.map((sec: any) => ({
         ...sec,
-        heading: sec.title,
-        body: sec.content,
       }))
     } : null,
   };
@@ -167,7 +164,6 @@ export const tenantService = {
       if (!faqs) return null;
       return {
         ...faqs,
-        intro: faqs.description,
       };
     }, 300);
   },
@@ -179,11 +175,9 @@ export const tenantService = {
       if (!policy) return null;
       return {
         ...policy,
-        intro: policy.description,
+        
         sections: policy.sections?.map((sec: any) => ({
           ...sec,
-          heading: sec.title,
-          body: sec.content,
         }))
       };
     }, 300);

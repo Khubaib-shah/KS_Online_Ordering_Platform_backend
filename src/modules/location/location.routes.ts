@@ -2,14 +2,15 @@ import { Router } from 'express';
 import { LocationController } from './location.controller';
 import { TenantLocationController } from './tenant-location.controller';
 import { authRequired, superAdminOnly } from '../../middlewares/auth.middleware';
+import { tenantResolver } from '../../middlewares/tenant-resolver.middleware';
 
 const router = Router();
 const locationController = new LocationController();
 const tenantLocationController = new TenantLocationController();
 
 // Public routes for location modal / checkout
-router.get('/cities', locationController.getTenantCities);
-router.get('/cities/:cityId/areas', locationController.getTenantCityAreas);
+router.get('/cities', tenantResolver({ required: true }), locationController.getTenantCities);
+router.get('/cities/:cityId/areas', tenantResolver({ required: true }), locationController.getTenantCityAreas);
 
 // Tenant Admin routes - protected by auth (TenantResolver handles req.tenantId)
 router.get('/effective-access', authRequired, tenantLocationController.getEffectiveAccess);

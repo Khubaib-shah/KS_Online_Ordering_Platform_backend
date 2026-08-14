@@ -106,6 +106,8 @@ model TenantContent {
   ogImageUrl       String?  @map("og_image_url")
   gaMeasurementId  String?  @map("ga_measurement_id") @db.VarChar(50)
   gscVerification  String?  @map("gsc_verification") @db.VarChar(100)
+  seoCanonicalOverride String? @map("seo_canonical_override") @db.VarChar(255)
+  seoTitleTemplate     String? @map("seo_title_template") @db.VarChar(100)
   noIndex          Boolean  @default(false) @map("no_index")
   activePromo      Json?    @map("active_promo")
   createdAt        DateTime @default(now()) @map("created_at")

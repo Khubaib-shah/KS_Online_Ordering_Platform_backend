@@ -367,8 +367,8 @@ export const tenantRepository = {
 
   async upsertFaqPage(tenantId: string, faqs: any, client: any = prisma) {
     const title = faqs?.title;
-    const description = faqs?.intro;
-    const items = Array.isArray(faqs?.items) ? faqs.items : [];
+    const description = faqs?.description;
+    const items = Array.isArray(faqs?.items) ? faqs.items : (Array.isArray(faqs?.faqs) ? faqs.faqs : []);
 
     const page = await client.tenantFaqPage.upsert({
       where: { tenantId },
@@ -399,7 +399,7 @@ export const tenantRepository = {
 
   async upsertPrivacyPolicy(tenantId: string, policy: any, client: any = prisma) {
     const title = policy?.title;
-    const description = policy?.intro;
+    const description = policy?.description;
     const sections = Array.isArray(policy?.sections) ? policy.sections : [];
 
     const page = await client.tenantPrivacyPolicy.upsert({

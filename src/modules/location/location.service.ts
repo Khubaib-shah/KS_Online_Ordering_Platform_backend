@@ -52,17 +52,16 @@ export class LocationService {
       for (const area of zone.areas || []) {
         const coverage = coverageMap.get(area.id);
         
-        // According to specs: an area is deliverable ONLY IF a branch covers it.
-        if (coverage) {
-          resultAreas.push({
-            id: area.id,
-            name: area.name,
-            slug: area.slug,
-            deliveryFee: coverage.deliveryFee,
-            minimumOrder: coverage.minimumOrder,
-            estimatedMinutes: coverage.estimatedMinutes
-          });
-        }
+        // Return the area if the tenant has access to it. If there is specific branch coverage,
+        // use those delivery settings. Otherwise, provide default values.
+        resultAreas.push({
+          id: area.id,
+          name: area.name,
+          slug: area.slug,
+          deliveryFee: coverage?.deliveryFee || 0,
+          minimumOrder: coverage?.minimumOrder || 0,
+          estimatedMinutes: coverage?.estimatedMinutes || 45
+        });
       }
 
       if (resultAreas.length > 0) {
