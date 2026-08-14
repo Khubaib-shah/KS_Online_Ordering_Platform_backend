@@ -26,8 +26,6 @@ export const createTenantSchema = z.object({
   content: z.any().optional(),
   faqPage: z.any().optional(),
   privacyPolicy: z.any().optional(),
-  faqPage: z.any().optional(),
-  privacyPolicy: z.any().optional(),
   locationAssignments: z.any().optional(),
 });
 
