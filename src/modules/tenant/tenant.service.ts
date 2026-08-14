@@ -400,6 +400,7 @@ export const tenantService = {
         updateData.supportedLocales = data.supportedLocales;
       }
       if (typeof data.isRtl === 'boolean') updateData.isRtl = data.isRtl;
+      if (data.status) updateData.status = data.status;
 
       if (data.settings) {
         updateData.settings = { upsert: { create: data.settings, update: data.settings } };
