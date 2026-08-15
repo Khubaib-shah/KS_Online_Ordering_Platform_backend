@@ -250,7 +250,7 @@ export const orderService = {
 
       const settings = await tx.tenantSettings.findUnique({
         where: { tenantId },
-        select: { taxRate: true },
+        select: { taxRate: true, tenant: { select: { name: true } } },
       });
       if (!settings) throw new NotFoundError('Tenant settings');
 
@@ -341,7 +341,7 @@ export const orderService = {
               },
             },
           })
-        : await createOrderWithRetry(tx, tenantId, orderData);
+        : await createOrderAtomic(tx, tenantId, settings.tenant.name, orderData);
 
       // Cash change calculation
       let change = null;
