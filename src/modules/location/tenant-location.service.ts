@@ -11,7 +11,7 @@ export class TenantLocationService {
     if (locationType === 'ZONE' && !zoneId) throw new ValidationError('zoneId is required for ZONE assignment');
     if (locationType === 'AREA' && !areaId) throw new ValidationError('areaId is required for AREA assignment');
 
-    return prisma.tenantLocation.upsert({
+    const result = await prisma.tenantLocation.upsert({
       where: {
         tenantId_locationType_cityId_zoneId_areaId: {
           tenantId,
@@ -35,6 +35,11 @@ export class TenantLocationService {
         isEnabled: true,
       }
     });
+
+    // Auto-create branch coverages for this tenant based on their new access
+    await this.syncBranchCoveragesForTenant(tenantId);
+
+    return result;
   }
 
   /**
@@ -237,6 +242,54 @@ export class TenantLocationService {
     }
 
     return { cities: resultCities };
+  }
+
+  /**
+   * Auto-creates BranchCoverage records for all branches of a tenant for all areas they have access to.
+   * Skips areas that already have a coverage record.
+   */
+  async syncBranchCoveragesForTenant(tenantId: string) {
+    const access = await this.getTenantEffectiveLocationAccess(tenantId);
+    const allowedAreaIds: string[] = [];
+    for (const city of access.cities) {
+      for (const zone of (city.zones || [])) {
+        for (const area of (zone.areas || [])) {
+          allowedAreaIds.push(area.id);
+        }
+      }
+    }
+
+    if (allowedAreaIds.length === 0) return;
+
+    const branches = await prisma.branch.findMany({ where: { tenantId } });
+    if (branches.length === 0) return;
+
+    const tenantSettings = await prisma.tenantSettings.findUnique({ where: { tenantId } });
+    const defaultFee = tenantSettings?.deliveryFee || 0;
+
+    const data = [];
+    for (const branch of branches) {
+      for (const areaId of allowedAreaIds) {
+        data.push({
+          branchId: branch.id,
+          areaId,
+          deliveryFee: defaultFee,
+          isActive: true
+        });
+      }
+    }
+
+    if (data.length > 0) {
+      await prisma.branchCoverage.createMany({
+        data,
+        skipDuplicates: true
+      });
+    }
+  }
+
+  async syncBranchCoveragesForAllTenants() {
+    const tenants = await prisma.tenant.findMany({ select: { id: true } });
+    await Promise.all(tenants.map(t => this.syncBranchCoveragesForTenant(t.id)));
   }
 }
 

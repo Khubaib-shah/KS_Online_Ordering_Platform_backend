@@ -10,9 +10,9 @@ export const createBranchSchema = z.object({
 });
 
 export const createDeliveryZoneSchema = z.object({
-  areaName: z.string().min(1).max(255),
-  city: z.string().min(1).max(255),
+  areaId: z.string().min(1),
   deliveryFee: z.number().min(0),
+  minimumOrder: z.number().min(0).optional(),
   estimatedMinutes: z.number().int().min(1).optional(),
   isActive: z.boolean().optional(),
 });

@@ -23,6 +23,7 @@ export const tenantController = {
     try {
       const { slug, domain } = req.query as { slug?: string; domain?: string };
       const tenant = await tenantService.bootstrap(slug, domain);
+      console.log('BOOTSTRAP RESULT:', JSON.stringify(tenant, null, 2));
       sendSuccess(res, tenant);
     } catch (error) {
       next(error);

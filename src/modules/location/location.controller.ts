@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { LocationService } from './location.service';
-import { getRedisClient } from '../../config/redis';
+import { cacheGetOrSet } from '../../lib/cache';
 
 const locationService = new LocationService();
 
@@ -14,17 +14,12 @@ export class LocationController {
         return res.status(400).json({ success: false, error: 'Tenant ID is required' });
       }
 
-      // Redis caching
-      const redisClient = await getRedisClient();
       const cacheKey = `tenant:${tenantId}:cities`;
-      const cached = await redisClient.get(cacheKey);
-      if (cached) {
-        return res.json({ success: true, data: JSON.parse(cached) });
-      }
-
-      const cities = await locationService.getTenantCities(tenantId);
-
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(cities)); // Cache for 1 hour
+      const cities = await cacheGetOrSet(
+        cacheKey,
+        () => locationService.getTenantCities(tenantId),
+        3600
+      );
 
       res.json({ success: true, data: cities });
     } catch (error: any) {
@@ -42,16 +37,12 @@ export class LocationController {
         return res.status(400).json({ success: false, error: 'Tenant ID is required' });
       }
 
-      const redisClient = await getRedisClient();
       const cacheKey = `tenant:${tenantId}:city:${cityId}:areas`;
-      const cached = await redisClient.get(cacheKey);
-      if (cached) {
-        return res.json({ success: true, data: JSON.parse(cached) });
-      }
-
-      const areasGrouped = await locationService.getTenantCityAreas(tenantId, cityId);
-
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(areasGrouped)); // Cache for 1 hour
+      const areasGrouped = await cacheGetOrSet(
+        cacheKey,
+        () => locationService.getTenantCityAreas(tenantId, cityId),
+        3600
+      );
 
       res.json({ success: true, data: areasGrouped });
     } catch (error: any) {

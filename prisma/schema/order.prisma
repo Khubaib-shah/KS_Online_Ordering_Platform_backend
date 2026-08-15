@@ -1,6 +1,6 @@
 model Order {
   id                   String          @id @default(uuid())
-  orderNumber          String          @unique @map("order_number") @db.VarChar(50)
+  orderNumber          String          @map("order_number") @db.VarChar(50)
   tenantId             String          @map("tenant_id")
   branchId             String          @map("branch_id")
   customerId           String?         @map("customer_id")
@@ -20,6 +20,9 @@ model Order {
   tableNumber          String?         @map("table_number") @db.VarChar(20)
   specialInstructions  String?         @map("special_instructions")
   privateKitchenNotes  String?         @map("private_kitchen_notes")
+  emailAddress         String?         @map("email_address")
+  altMobileNumber      String?         @map("alt_mobile_number")
+  changeRequest        String?         @map("change_request")
   statusTimeline       Json?           @map("status_timeline")
   cityId               String?         @map("city_id")
   zoneId               String?         @map("zone_id")
@@ -39,7 +42,17 @@ model Order {
   @@index([tenantId, branchId, status])
   @@index([customerId, createdAt])
   @@index([createdById])
+  @@unique([tenantId, orderNumber])
   @@map("orders")
+}
+
+model OrderSequence {
+  id          String   @id @default(uuid())
+  tenantId    String   @unique @map("tenant_id")
+  lastNumber  Int      @default(0) @map("last_number")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("order_sequences")
 }
 
 model OrderItem {

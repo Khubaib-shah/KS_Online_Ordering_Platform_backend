@@ -1,50 +1,33 @@
 import { NotFoundError, ValidationError } from '../../lib/errors';
 import { Decimal } from '@prisma/client/runtime/library';
 
-export function generateOrderNumber(tenantIdentifier?: string): string {
-  let prefix = 'ORD';
-  
-  if (tenantIdentifier) {
-    // Extract initials from words separated by space, hyphen, or underscore
-    const words = tenantIdentifier.split(/[-_\s]+/);
-    const initials = words.map(w => w.charAt(0)).join('').toUpperCase();
-    if (initials.length > 0) {
-      prefix = initials.substring(0, 5); // limit length just in case
-    }
-  }
-
-  // Generate a random 6-digit number
-  const randomPart = Math.floor(100000 + Math.random() * 900000).toString();
-  
-  return `${prefix}-${randomPart}`;
-}
-
-/**
- * Creates an order inside an existing transaction, retrying on order-number
- * collisions (Prisma P2002). Order numbers are random 6-digit suffixes, so a
- * collision is rare but possible at scale — never fail the customer's order.
- */
-export async function createOrderWithRetry(
+export async function createOrderAtomic(
   tx: any,
   tenantId: string,
+  tenantName: string,
   buildData: (orderNumber: string) => Record<string, unknown>
 ) {
-  const MAX_ATTEMPTS = 5;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const orderNumber = generateOrderNumber(tenantId);
-    try {
-      return await tx.order.create({
-        data: buildData(orderNumber) as any,
-      });
-    } catch (error: any) {
-      const isCollision =
-        error?.code === 'P2002' &&
-        Array.isArray(error?.meta?.target) &&
-        error.meta.target.includes('orderNumber');
-      if (!isCollision || attempt === MAX_ATTEMPTS) throw error;
+  let prefix = 'ORD';
+  if (tenantName) {
+    const words = tenantName.split(/[-_\s]+/);
+    const initials = words.map(w => w.charAt(0)).join('').toUpperCase();
+    if (initials.length > 0) {
+      prefix = initials.substring(0, 5);
     }
   }
-  throw new Error('Could not allocate a unique order number');
+
+  const seq = await tx.orderSequence.upsert({
+    where: { tenantId },
+    update: { lastNumber: { increment: 1 } },
+    create: { tenantId, lastNumber: 1 }
+  });
+
+  const paddedNum = seq.lastNumber.toString().padStart(7, '0');
+  const orderNumber = `${prefix}-${paddedNum}`;
+
+  return await tx.order.create({
+    data: buildData(orderNumber) as any,
+  });
 }
 
 export interface OrderItemInput {

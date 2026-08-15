@@ -6,10 +6,48 @@ export class LocationService {
   async getTenantCities(tenantId: string) {
     const access = await tenantLocationService.getTenantEffectiveLocationAccess(tenantId);
     
-    // We also need to ensure at least one area in the city has branch coverage.
-    // However, for simplicity of the city dropdown, we can just return the effective cities.
-    // The storefront will handle empty zones/areas.
-    return access.cities.map((c: any) => ({
+    // Find all active branch coverages to know which cities actually have delivery
+    const activeCoverages = await prisma.branchCoverage.findMany({
+      where: {
+        isActive: true,
+        branch: {
+          tenantId,
+          isActive: true,
+        }
+      },
+      select: {
+        areaId: true,
+        area: {
+          select: {
+            zone: {
+              select: {
+                cityId: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Extract a flat set of all area IDs the tenant currently has access to
+    const allowedAreaIds = new Set<string>();
+    access.cities.forEach((city: any) => {
+      city.zones?.forEach((zone: any) => {
+        zone.areas?.forEach((area: any) => allowedAreaIds.add(area.id));
+      });
+    });
+
+    const activeCityIds = new Set(
+      activeCoverages
+        .filter((c: any) => allowedAreaIds.has(c.areaId))
+        .map((c: any) => c.area?.zone?.cityId)
+        .filter(Boolean)
+    );
+
+    // Filter effective cities to only those that have at least one active branch coverage
+    const filteredCities = access.cities.filter((c: any) => activeCityIds.has(c.id));
+
+    return filteredCities.map((c: any) => ({
       id: c.id,
       name: c.name,
       slug: c.slug
@@ -25,11 +63,15 @@ export class LocationService {
     // Pre-fetch all branch coverages for this tenant in this city to avoid N+1 queries
     const activeCoverages = await prisma.branchCoverage.findMany({
       where: {
+        isActive: true,
         branch: {
           tenantId,
-          cityId, // Optional filter if branches have cityId set
           isActive: true,
-          deliveryEnabled: true,
+        },
+        area: {
+          zone: {
+            cityId
+          }
         }
       },
       orderBy: {
@@ -52,15 +94,17 @@ export class LocationService {
       for (const area of zone.areas || []) {
         const coverage = coverageMap.get(area.id);
         
-        // Return the area if the tenant has access to it. If there is specific branch coverage,
-        // use those delivery settings. Otherwise, provide default values.
+        // Only return the area if there is an active branch coverage for it!
+        if (!coverage) continue;
+
         resultAreas.push({
           id: area.id,
           name: area.name,
           slug: area.slug,
-          deliveryFee: coverage?.deliveryFee || 0,
-          minimumOrder: coverage?.minimumOrder || 0,
-          estimatedMinutes: coverage?.estimatedMinutes || 45
+          branchId: coverage.branchId,
+          deliveryFee: coverage.deliveryFee || 0,
+          minimumOrder: coverage.minimumOrder || 0,
+          estimatedMinutes: coverage.estimatedMinutes || 45
         });
       }
 
@@ -132,7 +176,12 @@ export class LocationService {
   }
 
   async createArea(data: { name: string; slug: string; zoneId: string; polygon?: any; isActive?: boolean }) {
-    return prisma.area.create({ data });
+    const area = await prisma.area.create({ data });
+    // Run in background to avoid blocking the API response
+    tenantLocationService.syncBranchCoveragesForAllTenants().catch(err => 
+      console.error('Failed to sync branch coverages after area creation:', err)
+    );
+    return area;
   }
 
   async updateArea(id: string, data: { name?: string; slug?: string; polygon?: any; isActive?: boolean }) {
@@ -144,6 +193,10 @@ export class LocationService {
   }
 
   async restoreArea(id: string) {
-    return prisma.area.update({ where: { id }, data: { deletedAt: null } });
+    const area = await prisma.area.update({ where: { id }, data: { deletedAt: null } });
+    tenantLocationService.syncBranchCoveragesForAllTenants().catch(err => 
+      console.error('Failed to sync branch coverages after area restore:', err)
+    );
+    return area;
   }
 }

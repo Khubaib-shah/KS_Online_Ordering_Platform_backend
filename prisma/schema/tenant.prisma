@@ -37,8 +37,9 @@ model Tenant {
   tenantLocations TenantLocation[]
   cashierShifts   CashierShift[]
   roles           Role[]
+  orderSequence   OrderSequence?
   city            City?                @relation(fields: [cityId], references: [id])
-  cityId          String?
+  cityId          String?              @map("city_id")
 
   @@map("tenants")
 }

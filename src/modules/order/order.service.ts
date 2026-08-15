@@ -4,7 +4,7 @@
 import { orderRepository } from './order.repository';
 import { NotFoundError, ValidationError } from '../../lib/errors';
 import { Decimal } from '@prisma/client/runtime/library';
-import { generateOrderNumber, recalculateLineItems, createOrderWithRetry, OrderItemInput } from './order.helper';
+import { recalculateLineItems, createOrderAtomic, OrderItemInput } from './order.helper';
 import { printJobService } from '../printer/print-job.service';
 import { deliveryResolutionService } from '../location/delivery-resolution.service';
 
@@ -26,6 +26,9 @@ export const orderService = {
     cityId?: string | null;
     zoneId?: string | null;
     areaId?: string | null;
+    emailAddress?: string | null;
+    altMobileNumber?: string | null;
+    changeRequest?: string | null;
   }) {
     const order = await orderRepository.transaction(async (tx) => {
       // 1. Resolve branch
@@ -61,7 +64,7 @@ export const orderService = {
       // 2. Fetch tenant settings for tax/fee calculation
       const settings = await tx.tenantSettings.findUnique({
         where: { tenantId },
-        select: { taxRate: true, serviceFee: true },
+        select: { taxRate: true, serviceFee: true, tenant: { select: { name: true } } },
       });
       if (!settings) throw new NotFoundError('Tenant settings');
 
@@ -165,8 +168,8 @@ export const orderService = {
         },
       });
 
-      // 6. Create order (retry on order-number collision)
-      const order = await createOrderWithRetry(tx, tenantId, (orderNumber) => ({
+      // 6. Create order
+      const order = await createOrderAtomic(tx, tenantId, settings.tenant.name, (orderNumber) => ({
         orderNumber,
         tenantId,
         branchId,
@@ -188,6 +191,9 @@ export const orderService = {
         nearestLandmark: data.nearestLandmark,
         deliveryInstructions: data.deliveryInstructions,
         specialInstructions: data.specialInstructions,
+        emailAddress: data.emailAddress || data.customer.email,
+        altMobileNumber: data.altMobileNumber,
+        changeRequest: data.changeRequest,
         cityId: data.cityId,
         zoneId: data.zoneId,
         areaId: data.areaId,
