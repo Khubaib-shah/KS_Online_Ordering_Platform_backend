@@ -154,9 +154,8 @@ export const orderRepository = {
         // A date-only value (YYYY-MM-DD) should include the whole end day
         if (/^\d{4}-\d{2}-\d{2}$/.test(filters.endDate)) {
           end.setDate(end.getDate() + 1);
-          end.setMilliseconds(-1);
         }
-        where.createdAt.lte = end;
+        where.createdAt.lt = end;
       }
     }
     if (filters.cashierId) where.createdById = filters.cashierId;

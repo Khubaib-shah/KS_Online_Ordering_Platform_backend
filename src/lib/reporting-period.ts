@@ -101,17 +101,21 @@ export async function resolveReportingPeriod(filter: ReportFilter): Promise<Repo
   const tzDateStr = formatInTimeZone(now, tz, 'yyyy-MM-dd'); // e.g. "2026-08-08"
   
   const getStartOfDay = (dateStr: string) => toDate(`${dateStr}T00:00:00`, { timeZone: tz });
-  const getEndOfDay = (dateStr: string) => toDate(`${dateStr}T23:59:59.999`, { timeZone: tz });
+  const getStartOfNextDay = (dateStr: string) => {
+    const d = toDate(`${dateStr}T00:00:00`, { timeZone: tz });
+    d.setDate(d.getDate() + 1);
+    return d;
+  };
 
   const todayStart = getStartOfDay(tzDateStr);
-  const todayEnd = getEndOfDay(tzDateStr);
+  const todayEnd = getStartOfNextDay(tzDateStr);
 
   if (filter.preset === 'today') {
     return { intervals: [{ start: todayStart, end: todayEnd }], isShiftBased: false };
   }
   if (filter.preset === 'yesterday') {
     const yestStr = formatInTimeZone(new Date(now.getTime() - 86400000), tz, 'yyyy-MM-dd');
-    return { intervals: [{ start: getStartOfDay(yestStr), end: getEndOfDay(yestStr) }], isShiftBased: false };
+    return { intervals: [{ start: getStartOfDay(yestStr), end: getStartOfNextDay(yestStr) }], isShiftBased: false };
   }
   if (filter.preset === '7d') {
     const start7dStr = formatInTimeZone(new Date(now.getTime() - 6 * 86400000), tz, 'yyyy-MM-dd');
@@ -143,7 +147,7 @@ export function buildWhereClauseForIntervals(intervals: { start: Date; end: Date
     return {
       createdAt: {
         gte: intervals[0].start,
-        lte: intervals[0].end
+        lt: intervals[0].end
       }
     };
   }
@@ -152,7 +156,7 @@ export function buildWhereClauseForIntervals(intervals: { start: Date; end: Date
     OR: intervals.map(interval => ({
       createdAt: {
         gte: interval.start,
-        lte: interval.end
+        lt: interval.end
       }
     }))
   };

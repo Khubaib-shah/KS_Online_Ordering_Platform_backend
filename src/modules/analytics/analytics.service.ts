@@ -92,7 +92,7 @@ export function getAnalyticsPointsFromOrders(orders: any[], filter: string, metr
 import { resolveReportingPeriod, buildWhereClauseForIntervals, ReportFilter } from '../../lib/reporting-period';
 
 export const analyticsService = {
-  async getDashboardStats(tenantId: string, filter: string, branchId?: string, userId?: string, createdById?: string) {
+  async getDashboardStats(tenantId: string, filter: string, branchId?: string, userId?: string, createdById?: string, customStart?: string, customEnd?: string) {
     let currentFilter: ReportFilter;
     let prevFilter: ReportFilter | null = null;
     
@@ -101,6 +101,8 @@ export const analyticsService = {
       prevFilter = filter === 'current-shift' ? { type: 'previous-shift', tenantId, branchId, userId: userId || '' } : null;
     } else if (filter === 'shift') {
       currentFilter = { type: 'shift', shiftId: '', tenantId, branchId }; 
+    } else if (filter === 'custom' && customStart && customEnd) {
+      currentFilter = { type: 'custom', start: new Date(customStart), end: new Date(customEnd), tenantId, branchId };
     } else {
       currentFilter = { type: 'calendar', preset: filter as any, tenantId, branchId };
     }
