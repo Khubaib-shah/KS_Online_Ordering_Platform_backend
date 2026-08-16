@@ -10,7 +10,7 @@ const buildTenantKey = (req: any) => {
     req.query?.tenantSlug ||
     req.headers?.["x-tenant-id"] ||
     req.headers?.["x-tenant-slug"];
-  const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
+  const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown";
   return `${tenantId ?? "public"}:${Array.isArray(ip) ? ip[0] : ip}`;
 };
 

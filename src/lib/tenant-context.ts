@@ -17,7 +17,8 @@ export function normalizeTenantHost(
     !normalized ||
     normalized === "localhost" ||
     normalized === "127.0.0.1" ||
-    normalized === "::1"
+    normalized === "::1" ||
+    normalized === "ks-online-ordering-platform-backend"
   ) {
     return undefined;
   }
