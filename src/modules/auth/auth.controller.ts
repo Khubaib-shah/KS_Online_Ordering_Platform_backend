@@ -33,7 +33,7 @@ export const requireCsrf = (
     return next();
   }
 
-  if (req.path.endsWith("/login")) {
+  if (req.path.endsWith("/login") || req.path.endsWith("/logout")) {
     return next();
   }
 
