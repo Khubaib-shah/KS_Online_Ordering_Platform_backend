@@ -24,6 +24,11 @@ export function normalizeTenantHost(
   }
 
   const [firstLabel] = normalized.split(".");
+  
+  if (firstLabel === "ks-online-ordering-platform-backend") {
+    return undefined;
+  }
+
   return firstLabel && firstLabel.length > 0 ? firstLabel : undefined;
 }
 
