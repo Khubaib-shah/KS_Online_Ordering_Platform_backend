@@ -39,14 +39,23 @@ export function tenantResolver(
         req.user?.globalRole === "SUPER_ADMIN" &&
         (switchTenantId || switchTenantSlug),
       );
-      const requestedSlug = isSuperAdminSwitch
+      let requestedSlug = isSuperAdminSwitch
         ? switchTenantSlug
         : normalizeTenantHost(
             (req.headers["x-forwarded-host"] as string | undefined) ||
               (req.headers.host as string | undefined) ||
               req.hostname,
           );
-      const requestedTenantId = isSuperAdminSwitch ? switchTenantId : undefined;
+      let requestedTenantId = isSuperAdminSwitch ? switchTenantId : undefined;
+
+      if (!requestedSlug && !requestedTenantId) {
+        requestedSlug = req.headers["x-tenant-slug"] as string | undefined;
+        requestedTenantId = req.headers["x-tenant-id"] as string | undefined;
+        
+        if (!requestedSlug && !requestedTenantId && req.user?.tenantId) {
+           requestedTenantId = req.user.tenantId;
+        }
+      }
 
       if (!requestedSlug && !requestedTenantId) {
         if (options.required) {
