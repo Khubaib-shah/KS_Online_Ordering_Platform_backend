@@ -18,9 +18,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "prisma": {
-    "schema": "prisma/schema"
-  },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "*",

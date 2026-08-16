@@ -1,6 +1,7 @@
 // ─── Staff Service ──────────────────────────────────────────────────
-import bcrypt from 'bcryptjs';
-import { staffRepository } from './staff.repository';
+import bcrypt from "bcryptjs";
+import { staffRepository } from "./staff.repository";
+import { canMutateStaffRole } from "./staff.security";
 
 export const staffService = {
   async list(tenantId: string, page: number, limit: number) {
@@ -16,7 +17,7 @@ export const staffService = {
       email,
       name,
       passwordHash,
-      globalRole: 'TENANT_USER',
+      globalRole: "TENANT_USER",
     };
 
     const staffProfileData = {
@@ -27,11 +28,18 @@ export const staffService = {
     return staffRepository.create(tenantId, userData, staffProfileData);
   },
 
-  async updatePermissions(id: string, tenantId: string, data: any) {
-    return staffRepository.updatePermissions(id, tenantId, data);
+  async updatePermissions(
+    id: string,
+    tenantId: string,
+    data: any,
+    actorUserId?: string,
+  ) {
+    return staffRepository.updatePermissions(id, tenantId, data, actorUserId);
   },
 
   async deactivate(userId: string, tenantId: string) {
     return staffRepository.deactivate(userId, tenantId);
   },
 };
+
+export { canMutateStaffRole };

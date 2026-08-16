@@ -1,53 +1,57 @@
 // ─── Staff/Team Routes ──────────────────────────────────────────────
-import { Router } from 'express';
-import { staffController } from './staff.controller';
-import { validate } from '../../middlewares/validate.middleware';
-import { tenantResolver } from '../../middlewares/tenant-resolver.middleware';
-import { authRequired } from '../../middlewares/auth.middleware';
-import { requirePermission } from '../../middlewares/permission.middleware';
-import { staffInviteRateLimiter } from '../../middlewares/rate-limit.middleware';
+import { Router } from "express";
+import { staffController } from "./staff.controller";
+import { validate } from "../../middlewares/validate.middleware";
+import { tenantResolver } from "../../middlewares/tenant-resolver.middleware";
+import { authRequired } from "../../middlewares/auth.middleware";
+import { requirePermission } from "../../middlewares/permission.middleware";
+import { staffInviteRateLimiter } from "../../middlewares/rate-limit.middleware";
+import { requireCsrf } from "../auth/auth.controller";
 
-import { inviteStaffSchema, updatePermissionsSchema } from './staff.validation';
+import { inviteStaffSchema, updatePermissionsSchema } from "./staff.validation";
 
 const router = Router();
 
 // List team members
 router.get(
-  '/',
+  "/",
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'View'),
-  staffController.listStaff
+  requirePermission("settings", "View"),
+  staffController.listStaff,
 );
 
 // Invite new staff
 router.post(
-  '/invite',
+  "/invite",
   staffInviteRateLimiter,
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'Create'),
+  requirePermission("settings", "Create"),
+  requireCsrf,
   validate({ body: inviteStaffSchema }),
-  staffController.inviteStaff
+  staffController.inviteStaff,
 );
 
 // Update staff permissions
 router.put(
-  '/:id/permissions',
+  "/:id/permissions",
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'Edit'),
+  requirePermission("settings", "Edit"),
+  requireCsrf,
   validate({ body: updatePermissionsSchema }),
-  staffController.updatePermissions
+  staffController.updatePermissions,
 );
 
 // Deactivate staff
 router.patch(
-  '/:userId/deactivate',
+  "/:userId/deactivate",
   authRequired,
   tenantResolver(),
-  requirePermission('settings', 'Edit'),
-  staffController.deactivateStaff
+  requirePermission("settings", "Edit"),
+  requireCsrf,
+  staffController.deactivateStaff,
 );
 
 export default router;

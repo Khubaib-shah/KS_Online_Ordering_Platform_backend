@@ -1,21 +1,33 @@
-import { Request as ExpressRequest, Response, NextFunction } from 'express';
+import { Request as ExpressRequest, Response, NextFunction } from "express";
 type Request = ExpressRequest<any>;
-import { staffService } from './staff.service';
-import { sendSuccess, sendPaginated } from '../../lib/api-response';
-import { parsePagination } from '../../lib/pagination';
+import { staffService } from "./staff.service";
+import { sendSuccess, sendPaginated } from "../../lib/api-response";
+import { parsePagination } from "../../lib/pagination";
 
 export const staffController = {
-  async listStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async listStaff(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const { page, limit } = parsePagination(req.query);
-      const { staff, total } = await staffService.list(req.tenantId!, page, limit);
+      const { staff, total } = await staffService.list(
+        req.tenantId!,
+        page,
+        limit,
+      );
       sendPaginated(res, staff, total, page, limit);
     } catch (error) {
       next(error);
     }
   },
 
-  async inviteStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async inviteStaff(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       const user = await staffService.invite(req.tenantId!, req.body);
       sendSuccess(res, user, 201);
@@ -24,16 +36,29 @@ export const staffController = {
     }
   },
 
-  async updatePermissions(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async updatePermissions(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
-      const staff = await staffService.updatePermissions(req.params.id, req.tenantId!, req.body);
+      const staff = await staffService.updatePermissions(
+        req.params.id,
+        req.tenantId!,
+        req.body,
+        req.user?.userId,
+      );
       sendSuccess(res, staff);
     } catch (error) {
       next(error);
     }
   },
 
-  async deactivateStaff(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async deactivateStaff(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     try {
       await staffService.deactivate(req.params.userId, req.tenantId!);
       sendSuccess(res, { deactivated: true });

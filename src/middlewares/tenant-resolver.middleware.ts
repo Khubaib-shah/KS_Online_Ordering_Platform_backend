@@ -1,10 +1,11 @@
 // ─── Tenant Resolver Middleware ──────────────────────────────────────
-// Resolves tenant from X-Tenant-Slug header or query param, attaches to req.
+// Resolves tenant from a trusted host/public route, not client-supplied headers.
 
-import { Request, Response, NextFunction } from 'express';
-import { prisma } from '../config/database';
-import { cacheGetOrSet } from '../lib/cache';
-import { sendError } from '../lib/api-response';
+import { Request, Response, NextFunction } from "express";
+import { prisma } from "../config/database";
+import { cacheGetOrSet } from "../lib/cache";
+import { sendError } from "../lib/api-response";
+import { normalizeTenantHost } from "../lib/tenant-context";
 
 // Extend Express Request to include tenant context
 declare global {
@@ -16,57 +17,98 @@ declare global {
   }
 }
 
-export function tenantResolver(options: { required?: boolean } = { required: true }) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export function tenantResolver(
+  options: { required?: boolean } = { required: true },
+) {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     try {
-      // Try multiple resolution strategies
-      const slug =
-        (req.headers['x-tenant-slug'] as string) ||
-        (req.query.tenantSlug as string) ||
-        (req.query.slug as string);
+      const switchTenantId =
+        typeof req.query.switchTenantId === "string"
+          ? req.query.switchTenantId
+          : undefined;
+      const switchTenantSlug =
+        typeof req.query.switchTenantSlug === "string"
+          ? req.query.switchTenantSlug
+          : undefined;
 
-      const tenantId =
-        (req.headers['x-tenant-id'] as string) ||
-        (req.query.tenantId as string);
+      const isSuperAdminSwitch = Boolean(
+        req.user?.globalRole === "SUPER_ADMIN" &&
+        (switchTenantId || switchTenantSlug),
+      );
+      const requestedSlug = isSuperAdminSwitch
+        ? switchTenantSlug
+        : normalizeTenantHost(
+            (req.headers["x-forwarded-host"] as string | undefined) ||
+              (req.headers.host as string | undefined) ||
+              req.hostname,
+          );
+      const requestedTenantId = isSuperAdminSwitch ? switchTenantId : undefined;
 
-      if (!slug && !tenantId) {
+      if (!requestedSlug && !requestedTenantId) {
         if (options.required) {
-          sendError(res, 400, 'TENANT_REQUIRED', 'Tenant identification is required. Provide X-Tenant-Slug header or tenantSlug query param.');
+          sendError(
+            res,
+            400,
+            "TENANT_REQUIRED",
+            "Tenant resolution is required. Public routes are bound to the trusted host/domain.",
+          );
           return;
         }
         return next();
       }
 
-      // Cache tenant resolution for 5 minutes
-      const cacheKey = slug ? `tenant:slug:${slug}` : `tenant:id:${tenantId}`;
+      const cacheKey = requestedSlug
+        ? `tenant:slug:${requestedSlug}`
+        : `tenant:id:${requestedTenantId}`;
       const tenant = await cacheGetOrSet(
         cacheKey,
         async () => {
-          const where = slug ? { slug } : { id: tenantId! };
+          const where = requestedSlug
+            ? { slug: requestedSlug }
+            : { id: requestedTenantId! };
           return prisma.tenant.findUnique({
             where,
             select: { id: true, slug: true, status: true },
           });
         },
-        300
+        300,
       );
 
       if (!tenant) {
-        sendError(res, 404, 'TENANT_NOT_FOUND', `Tenant '${slug || tenantId}' not found`);
+        sendError(
+          res,
+          404,
+          "TENANT_NOT_FOUND",
+          `Tenant '${requestedSlug || requestedTenantId}' not found`,
+        );
         return;
       }
 
-      if (tenant.status === 'SUSPENDED') {
-        sendError(res, 403, 'TENANT_SUSPENDED', 'This tenant account has been suspended');
+      if (tenant.status === "SUSPENDED") {
+        sendError(
+          res,
+          403,
+          "TENANT_SUSPENDED",
+          "This tenant account has been suspended",
+        );
         return;
       }
+
       req.tenantId = tenant.id;
       req.tenantSlug = tenant.slug;
 
-      // Tenant isolation guard check:
-      if (req.user && req.user.globalRole !== 'SUPER_ADMIN') {
+      if (req.user && req.user.globalRole !== "SUPER_ADMIN") {
         if (req.tenantId !== req.user.tenantId) {
-          sendError(res, 403, 'FORBIDDEN_TENANT', 'Access to this tenant is unauthorized');
+          sendError(
+            res,
+            403,
+            "FORBIDDEN_TENANT",
+            "Access to this tenant is unauthorized",
+          );
           return;
         }
       }

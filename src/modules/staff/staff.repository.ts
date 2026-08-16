@@ -1,10 +1,17 @@
 // ─── Staff Repository ───────────────────────────────────────────────
-import { prisma } from '../../config/database';
+import { prisma } from "../../config/database";
+import { canMutateStaffRole } from "./staff.security";
 
 export const STAFF_SELECT = {
   id: true,
   user: {
-    select: { id: true, email: true, name: true, avatarUrl: true, isActive: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      avatarUrl: true,
+      isActive: true,
+    },
   },
   isOwner: true,
   branchId: true,
@@ -45,9 +52,60 @@ export const staffRepository = {
     });
   },
 
-  async updatePermissions(id: string, tenantId: string, data: any) {
-    const existing = await prisma.staffProfile.findFirst({ where: { id, user: { tenantId } } });
-    if (!existing) throw new Error('Staff profile not found');
+  async updatePermissions(
+    id: string,
+    tenantId: string,
+    data: any,
+    actorUserId?: string,
+  ) {
+    const existing = await prisma.staffProfile.findFirst({
+      where: { id, user: { tenantId } },
+      include: {
+        role: true,
+        user: {
+          select: { id: true, tenantId: true },
+        },
+      },
+    });
+
+    if (!existing) throw new Error("Staff profile not found");
+
+    const nextRoleId = data.roleId ?? existing.roleId;
+    const nextRole = nextRoleId
+      ? await prisma.role.findFirst({ where: { id: nextRoleId, tenantId } })
+      : null;
+
+    if (actorUserId && actorUserId === existing.user.id) {
+      throw new Error("You cannot change your own role assignment.");
+    }
+
+    if (actorUserId) {
+      const actorProfile = await prisma.staffProfile.findFirst({
+        where: { userId: actorUserId, user: { tenantId } },
+        include: { role: true },
+      });
+
+      if (!actorProfile) {
+        throw new Error("Actor staff profile is missing for this tenant.");
+      }
+
+      const nextRoleName = nextRole?.name ?? existing.role?.name ?? null;
+      const actorRoleName = actorProfile.role?.name ?? null;
+
+      if (
+        !canMutateStaffRole(
+          { isOwner: actorProfile.isOwner, role: { name: actorRoleName } },
+          {
+            isOwner: existing.isOwner,
+            role: { name: existing.role?.name ?? null },
+          },
+          nextRoleName,
+        )
+      ) {
+        throw new Error("Role hierarchy prevents this permission change.");
+      }
+    }
+
     return prisma.staffProfile.update({
       where: { id },
       data,
@@ -56,8 +114,10 @@ export const staffRepository = {
   },
 
   async deactivate(userId: string, tenantId: string) {
-    const existing = await prisma.user.findFirst({ where: { id: userId, tenantId } });
-    if (!existing) throw new Error('User not found');
+    const existing = await prisma.user.findFirst({
+      where: { id: userId, tenantId },
+    });
+    if (!existing) throw new Error("User not found");
     return prisma.user.update({
       where: { id: userId },
       data: { isActive: false },
