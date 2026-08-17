@@ -14,7 +14,7 @@ router.get(
   '/',
   authRequired,
   tenantResolver(),
-  requirePermission('reports', 'View'),
+  requirePermission('customers', 'View'),
   validate({ query: listCustomersQuerySchema }),
   customerController.list
 );
@@ -23,7 +23,7 @@ router.get(
   '/:id',
   authRequired,
   tenantResolver(),
-  requirePermission('reports', 'View'),
+  requirePermission('customers', 'View'),
   customerController.getById
 );
 

@@ -63,18 +63,41 @@ model CashierShift {
   @@map("cashier_shifts")
 }
 
+enum RoleScope {
+  BRANCH
+  TENANT
+}
+
 model Role {
-  id          String   @id @default(uuid())
-  tenantId    String   @map("tenant_id")
-  name        String   @db.VarChar(100)
-  description String?  @db.VarChar(255)
-  permissions Json     @default("{}")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  tenantId    String    @map("tenant_id")
+  name        String    @db.VarChar(100)
+  description String?   @db.VarChar(255)
+  permissions Json      @default("{}")
+  rank        Int       @default(10)
+  scope       RoleScope @default(BRANCH)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   staffProfiles StaffProfile[]
 
   @@index([tenantId])
   @@map("roles")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String   @map("tenant_id")
+  branchId   String?  @map("branch_id")
+  actorId    String   @map("actor_id")
+  action     String   @db.VarChar(100)
+  targetType String   @map("target_type") @db.VarChar(100)
+  targetId   String   @map("target_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, actorId, createdAt])
+  @@index([tenantId, targetType, targetId])
+  @@map("audit_logs")
 }

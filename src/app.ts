@@ -24,6 +24,7 @@ import { tableRouter } from "./modules/table/table.route";
 import { locationRoutes } from "./modules/location/location.routes";
 import roleRoutes from "./modules/role/role.routes";
 import shiftRoutes from "./modules/shift/shift.routes";
+import auditLogRoutes from "./modules/audit-log/audit-log.routes";
 
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -101,6 +102,7 @@ app.use("/api/v1/superadmin", superadminRoutes);
 app.use("/api/v1/upload", uploadRoutes);
 app.use("/api/v1/printer", printerRoutes);
 app.use("/api/v1/tables", tableRouter);
+app.use("/api/v1/audit-logs", auditLogRoutes);
 
 // ── 404 Handler ──
 app.use((_req, res) => {

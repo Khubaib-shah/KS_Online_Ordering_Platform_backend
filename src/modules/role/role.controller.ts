@@ -1,17 +1,23 @@
-import { Request, Response, NextFunction } from 'express';
+// ─── Role Controller ────────────────────────────────────────────────
+// Tenant scoping is handled by tenantResolver middleware (req.tenantId).
+// Actor context is passed to service for escalation guards.
+
+import { Request as ExpressRequest, Response, NextFunction } from 'express';
+type Request = ExpressRequest<any>;
 import { roleService } from './role.service';
 import { createRoleSchema, updateRoleSchema } from './role.validation';
+import { sendSuccess, sendError } from '../../lib/api-response';
 
 export const roleController = {
   async createRole(req: Request, res: Response, next: NextFunction) {
     try {
-      const tenantId = req.user?.tenantId;
-      if (!tenantId) {
-        return res.status(403).json({ success: false, error: { message: 'Tenant required' } });
-      }
-
       const validatedData = createRoleSchema.parse(req.body);
-      const role = await roleService.createRole(tenantId, validatedData);
+      const role = await roleService.createRole(
+        req.tenantId!,
+        validatedData,
+        req.user?.userId,
+        req.staffProfile,
+      );
       res.status(201).json({ success: true, data: role });
     } catch (error) {
       next(error);
@@ -20,12 +26,7 @@ export const roleController = {
 
   async getRoles(req: Request, res: Response, next: NextFunction) {
     try {
-      const tenantId = req.user?.tenantId;
-      if (!tenantId) {
-        return res.status(403).json({ success: false, error: { message: 'Tenant required' } });
-      }
-
-      const roles = await roleService.getRoles(tenantId);
+      const roles = await roleService.getRoles(req.tenantId!);
       res.json({ success: true, data: roles });
     } catch (error) {
       next(error);
@@ -34,15 +35,9 @@ export const roleController = {
 
   async getRoleById(req: Request, res: Response, next: NextFunction) {
     try {
-      const tenantId = req.user?.tenantId;
-      if (!tenantId) {
-        return res.status(403).json({ success: false, error: { message: 'Tenant required' } });
-      }
-
-      const roleId = req.params.id as string;
-      const role = await roleService.getRoleById(roleId, tenantId);
+      const role = await roleService.getRoleById(req.params.id, req.tenantId!);
       if (!role) {
-        return res.status(404).json({ success: false, error: { message: 'Role not found' } });
+        return sendError(res, 404, 'NOT_FOUND', 'Role not found');
       }
       res.json({ success: true, data: role });
     } catch (error) {
@@ -52,14 +47,14 @@ export const roleController = {
 
   async updateRole(req: Request, res: Response, next: NextFunction) {
     try {
-      const tenantId = req.user?.tenantId;
-      if (!tenantId) {
-        return res.status(403).json({ success: false, error: { message: 'Tenant required' } });
-      }
-
-      const roleId = req.params.id as string;
       const validatedData = updateRoleSchema.parse(req.body);
-      const role = await roleService.updateRole(roleId, tenantId, validatedData);
+      const role = await roleService.updateRole(
+        req.params.id,
+        req.tenantId!,
+        validatedData,
+        req.user?.userId,
+        req.staffProfile,
+      );
       res.json({ success: true, data: role });
     } catch (error) {
       next(error);
@@ -68,13 +63,7 @@ export const roleController = {
 
   async deleteRole(req: Request, res: Response, next: NextFunction) {
     try {
-      const tenantId = req.user?.tenantId;
-      if (!tenantId) {
-        return res.status(403).json({ success: false, error: { message: 'Tenant required' } });
-      }
-
-      const roleId = req.params.id as string;
-      await roleService.deleteRole(roleId, tenantId);
+      await roleService.deleteRole(req.params.id, req.tenantId!, req.user?.userId);
       res.json({ success: true, message: 'Role deleted successfully' });
     } catch (error) {
       next(error);

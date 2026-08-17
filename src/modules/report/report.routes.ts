@@ -4,6 +4,7 @@ import { reportController } from './report.controller';
 import { tenantResolver } from '../../middlewares/tenant-resolver.middleware';
 import { authRequired } from '../../middlewares/auth.middleware';
 import { requirePermission } from '../../middlewares/permission.middleware';
+import { resolveScope } from '../../middlewares/scope-resolver.middleware';
 import { validate } from '../../middlewares/validate.middleware';
 
 import { reportQuerySchema } from './report.validation';
@@ -15,6 +16,7 @@ router.get(
   authRequired,
   tenantResolver(),
   requirePermission('reports', 'View'),
+  resolveScope(),
   validate({ query: reportQuerySchema }),
   reportController.getSummary
 );

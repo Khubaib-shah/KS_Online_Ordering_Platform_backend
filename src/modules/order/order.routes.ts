@@ -6,6 +6,7 @@ import { validate } from '../../middlewares/validate.middleware';
 import { tenantResolver } from '../../middlewares/tenant-resolver.middleware';
 import { authRequired } from '../../middlewares/auth.middleware';
 import { requirePermission } from '../../middlewares/permission.middleware';
+import { resolveScope } from '../../middlewares/scope-resolver.middleware';
 import { orderCreationRateLimiter } from '../../middlewares/rate-limit.middleware';
 import {
   createWebsiteOrderSchema,
@@ -40,6 +41,7 @@ router.post(
   authRequired,
   tenantResolver(),
   requirePermission('pos', 'Create'),
+  resolveScope(),
   validate({ body: createPosOrderSchema }),
   orderController.createPosOrder
 );
@@ -50,6 +52,7 @@ router.get(
   authRequired,
   tenantResolver(),
   requirePermission('orders', 'View'),
+  resolveScope(),
   validate({ query: listOrdersQuerySchema }),
   orderController.listOrders
 );
@@ -59,6 +62,7 @@ router.get(
   authRequired,
   tenantResolver(),
   requirePermission('orders', 'View'),
+  resolveScope(),
   orderController.getKitchenOrders
 );
 
@@ -67,6 +71,7 @@ router.get(
   authRequired,
   tenantResolver(),
   requirePermission('orders', 'View'),
+  resolveScope(),
   orderController.getOrder
 );
 
@@ -75,6 +80,7 @@ router.delete(
   authRequired,
   tenantResolver(),
   requirePermission('orders', 'Delete'),
+  resolveScope(),
   orderController.deleteOrder
 );
 
@@ -83,6 +89,7 @@ router.patch(
   authRequired,
   tenantResolver(),
   requirePermission('orders', 'Edit'),
+  resolveScope(),
   validate({ body: updateOrderStatusSchema }),
   orderController.updateStatus
 );
@@ -93,6 +100,7 @@ router.patch(
   authRequired,
   tenantResolver(),
   requirePermission('orders', 'Edit'),
+  resolveScope(),
   validate({ body: updatePaymentStatusSchema }),
   orderController.updatePayment
 );

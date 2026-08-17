@@ -2,6 +2,7 @@ import { Request as ExpressRequest, Response, NextFunction } from 'express';
 type Request = ExpressRequest<any>;
 import { shiftService } from './shift.service';
 import { sendSuccess } from '../../lib/api-response';
+import { enforceBranchScope } from '../../middlewares/scope-resolver.middleware';
 
 export const shiftController = {
   async getMyActiveShift(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -25,8 +26,10 @@ export const shiftController = {
   async getBranchShifts(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { branchId } = req.query as { branchId: string };
-      if (!branchId) throw new Error('branchId is required');
-      const shifts = await shiftService.getBranchShifts(req.tenantId!, branchId);
+      const enforcedBranch = enforceBranchScope(req, res, branchId);
+      if (enforcedBranch === '__BLOCKED__') return;
+      if (!enforcedBranch) throw new Error('branchId is required');
+      const shifts = await shiftService.getBranchShifts(req.tenantId!, enforcedBranch);
       sendSuccess(res, shifts);
     } catch (error) {
       next(error);
@@ -36,8 +39,10 @@ export const shiftController = {
   async getBranchShiftHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { branchId, limit } = req.query as { branchId: string; limit?: string };
-      if (!branchId) throw new Error('branchId is required');
-      const shifts = await shiftService.getBranchShiftHistory(req.tenantId!, branchId, limit ? parseInt(limit, 10) : 10);
+      const enforcedBranch = enforceBranchScope(req, res, branchId);
+      if (enforcedBranch === '__BLOCKED__') return;
+      if (!enforcedBranch) throw new Error('branchId is required');
+      const shifts = await shiftService.getBranchShiftHistory(req.tenantId!, enforcedBranch, limit ? parseInt(limit, 10) : 10);
       sendSuccess(res, shifts);
     } catch (error) {
       next(error);

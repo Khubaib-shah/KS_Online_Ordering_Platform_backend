@@ -7,6 +7,7 @@ import { Decimal } from '@prisma/client/runtime/library';
 import { recalculateLineItems, createOrderAtomic, OrderItemInput } from './order.helper';
 import { printJobService } from '../printer/print-job.service';
 import { deliveryResolutionService } from '../location/delivery-resolution.service';
+import { auditLogService } from '../../lib/audit-log.service';
 
 export const orderService = {
   /**
@@ -46,7 +47,7 @@ export const orderService = {
       if (!branchId && data.fulfillmentType === 'DELIVERY' && data.cityId && data.zoneId && data.areaId) {
         // Validate effective location access and get eligible branches
         await deliveryResolutionService.validateDeliveryLocation(tenantId, data.cityId, data.zoneId, data.areaId);
-        
+
         const branch = await deliveryResolutionService.resolveDeliveryBranch(tenantId, data.areaId);
         if (!branch) throw new NotFoundError('Delivery coverage for selected area');
         branchId = branch.branchId;
@@ -299,48 +300,48 @@ export const orderService = {
       // an explicit offline-recovery orderNumber must collide or it surfaces as a genuine duplicate.
       const order = data.orderNumber
         ? await tx.order.create({
-            data: orderData(data.orderNumber),
-            select: {
-              id: true,
-              orderNumber: true,
-              channel: true,
-              fulfillmentType: true,
-              status: true,
-              paymentMethod: true,
-              paymentStatus: true,
-              subtotal: true,
-              taxAmount: true,
-              discountAmount: true,
-              deliveryFee: true,
-              grandTotal: true,
-              deliveryAddress: true,
-              nearestLandmark: true,
-              deliveryInstructions: true,
-              tableNumber: true,
-              specialInstructions: true,
-              privateKitchenNotes: true,
-              statusTimeline: true,
-              createdAt: true,
-              updatedAt: true,
-              customer: {
-                select: { id: true, name: true, phone: true, email: true },
-              },
-              branch: {
-                select: { id: true, name: true },
-              },
-              items: {
-                select: {
-                  id: true,
-                  itemName: true,
-                  unitPrice: true,
-                  quantity: true,
-                  selectedVariants: true,
-                  itemNote: true,
-                  totalPrice: true,
-                },
+          data: orderData(data.orderNumber),
+          select: {
+            id: true,
+            orderNumber: true,
+            channel: true,
+            fulfillmentType: true,
+            status: true,
+            paymentMethod: true,
+            paymentStatus: true,
+            subtotal: true,
+            taxAmount: true,
+            discountAmount: true,
+            deliveryFee: true,
+            grandTotal: true,
+            deliveryAddress: true,
+            nearestLandmark: true,
+            deliveryInstructions: true,
+            tableNumber: true,
+            specialInstructions: true,
+            privateKitchenNotes: true,
+            statusTimeline: true,
+            createdAt: true,
+            updatedAt: true,
+            customer: {
+              select: { id: true, name: true, phone: true, email: true },
+            },
+            branch: {
+              select: { id: true, name: true },
+            },
+            items: {
+              select: {
+                id: true,
+                itemName: true,
+                unitPrice: true,
+                quantity: true,
+                selectedVariants: true,
+                itemNote: true,
+                totalPrice: true,
               },
             },
-          })
+          },
+        })
         : await createOrderAtomic(tx, tenantId, settings.tenant.name, orderData);
 
       // Cash change calculation
@@ -367,9 +368,25 @@ export const orderService = {
       return { ...order, change };
     });
 
+    if (data.createdById) {
+      auditLogService.record({
+        tenantId,
+        branchId: data.branchId,
+        actorId: data.createdById,
+        action: 'CREATED',
+        targetType: 'Order',
+        targetId: order.id,
+        metadata: {
+          orderNumber: order.orderNumber,
+          grandTotal: order.grandTotal,
+          channel: order.channel,
+        },
+      });
+    }
+
     // Dispatch receipt + kitchen docket to branch printers (never fails the order)
     if (order?.branch?.id) {
-      await printJobService.dispatchForOrder(tenantId, order.branch.id, order, ['RECEIPT', 'KITCHEN_DOCKET']);
+      await printJobService.dispatchForOrder(tenantId, order.branch.id, order as any, ['RECEIPT', 'KITCHEN_DOCKET']);
     }
 
     return order;
@@ -393,10 +410,23 @@ export const orderService = {
     return order;
   },
 
-  async deleteOrder(id: string, tenantId: string) {
+  async deleteOrder(id: string, tenantId: string, actorId?: string) {
     const order = await orderRepository.findById(id, tenantId);
     if (!order) throw new NotFoundError('Order', id);
-    return orderRepository.delete(id, tenantId);
+
+    await orderRepository.delete(id, tenantId);
+
+    if (actorId) {
+      auditLogService.record({
+        tenantId,
+        branchId: order.branch.id,
+        actorId,
+        action: 'DELETED',
+        targetType: 'Order',
+        targetId: order.id,
+      });
+    }
+    return;
   },
 
   async listOrders(tenantId: string, filters: any, page: number, limit: number) {
@@ -404,7 +434,7 @@ export const orderService = {
     return orderRepository.list(tenantId, filters, skip, limit);
   },
 
-  async updateStatus(id: string, tenantId: string, status: string, notes?: string, author?: string) {
+  async updateStatus(id: string, tenantId: string, status: string, notes?: string, author?: string, actorId?: string) {
     const order = await orderRepository.findById(id, tenantId);
     if (!order) throw new NotFoundError('Order', id);
 
@@ -418,6 +448,18 @@ export const orderService = {
     });
 
     const updated = await orderRepository.updateStatus(order.id, tenantId, status, timeline);
+
+    if (actorId) {
+      auditLogService.record({
+        tenantId,
+        branchId: order.branch?.id,
+        actorId,
+        action: 'UPDATED',
+        targetType: 'Order',
+        targetId: order.id,
+        metadata: { status },
+      });
+    }
 
     // Print the customer receipt when a website order is accepted (never fails the order)
     if (status === 'ACCEPTED' && order.channel === 'WEBSITE' && updated?.branch?.id) {

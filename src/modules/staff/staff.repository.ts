@@ -89,17 +89,17 @@ export const staffRepository = {
         throw new Error("Actor staff profile is missing for this tenant.");
       }
 
-      const nextRoleName = nextRole?.name ?? existing.role?.name ?? null;
-      const actorRoleName = actorProfile.role?.name ?? null;
+      // Use integer rank comparison instead of regex name matching
+      const nextRoleRank = nextRole?.rank ?? existing.role?.rank ?? 0;
 
       if (
         !canMutateStaffRole(
-          { isOwner: actorProfile.isOwner, role: { name: actorRoleName } },
+          { isOwner: actorProfile.isOwner, role: { rank: actorProfile.role?.rank ?? 0 } },
           {
             isOwner: existing.isOwner,
-            role: { name: existing.role?.name ?? null },
+            role: { rank: existing.role?.rank ?? 0 },
           },
-          nextRoleName,
+          nextRoleRank,
         )
       ) {
         throw new Error("Role hierarchy prevents this permission change.");
@@ -121,6 +121,13 @@ export const staffRepository = {
     return prisma.user.update({
       where: { id: userId },
       data: { isActive: false },
+    });
+  },
+
+  async findById(id: string, tenantId: string) {
+    return prisma.staffProfile.findFirst({
+      where: { id, user: { tenantId } },
+      select: STAFF_SELECT,
     });
   },
 };

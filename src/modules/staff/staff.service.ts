@@ -2,6 +2,7 @@
 import bcrypt from "bcryptjs";
 import { staffRepository } from "./staff.repository";
 import { canMutateStaffRole } from "./staff.security";
+import { auditLogService } from "../../lib/audit-log.service";
 
 export const staffService = {
   async list(tenantId: string, page: number, limit: number) {
@@ -9,7 +10,7 @@ export const staffService = {
     return staffRepository.list(tenantId, skip, limit);
   },
 
-  async invite(tenantId: string, data: any) {
+  async invite(tenantId: string, data: any, actorUserId?: string) {
     const { email, name, password, branchId, roleId } = data;
     const passwordHash = await bcrypt.hash(password, 12);
 
@@ -25,7 +26,22 @@ export const staffService = {
       branchId,
     };
 
-    return staffRepository.create(tenantId, userData, staffProfileData);
+    const result = await staffRepository.create(tenantId, userData, staffProfileData);
+
+    // Audit log
+    if (actorUserId) {
+      await auditLogService.record({
+        tenantId,
+        branchId,
+        actorId: actorUserId,
+        action: 'STAFF_INVITED',
+        targetType: 'User',
+        targetId: result.id,
+        metadata: { email, name, roleId, branchId },
+      });
+    }
+
+    return result;
   },
 
   async updatePermissions(
@@ -34,11 +50,42 @@ export const staffService = {
     data: any,
     actorUserId?: string,
   ) {
-    return staffRepository.updatePermissions(id, tenantId, data, actorUserId);
+    const result = await staffRepository.updatePermissions(id, tenantId, data, actorUserId);
+
+    // Audit log
+    if (actorUserId) {
+      await auditLogService.record({
+        tenantId,
+        actorId: actorUserId,
+        action: 'STAFF_UPDATED',
+        targetType: 'StaffProfile',
+        targetId: id,
+        metadata: { changes: data },
+      });
+    }
+
+    return result;
   },
 
-  async deactivate(userId: string, tenantId: string) {
-    return staffRepository.deactivate(userId, tenantId);
+  async deactivate(userId: string, tenantId: string, actorUserId?: string) {
+    const result = await staffRepository.deactivate(userId, tenantId);
+
+    // Audit log
+    if (actorUserId) {
+      await auditLogService.record({
+        tenantId,
+        actorId: actorUserId,
+        action: 'STAFF_DEACTIVATED',
+        targetType: 'User',
+        targetId: userId,
+      });
+    }
+
+    return result;
+  },
+
+  async getById(id: string, tenantId: string) {
+    return staffRepository.findById(id, tenantId);
   },
 };
 

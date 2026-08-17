@@ -5,6 +5,7 @@ import { validate } from "../../middlewares/validate.middleware";
 import { tenantResolver } from "../../middlewares/tenant-resolver.middleware";
 import { authRequired } from "../../middlewares/auth.middleware";
 import { requirePermission } from "../../middlewares/permission.middleware";
+import { resolveScope } from "../../middlewares/scope-resolver.middleware";
 import { staffInviteRateLimiter } from "../../middlewares/rate-limit.middleware";
 import { requireCsrf } from "../auth/auth.controller";
 
@@ -17,8 +18,18 @@ router.get(
   "/",
   authRequired,
   tenantResolver(),
-  requirePermission("settings", "View"),
+  requirePermission("staff", "View"),
   staffController.listStaff,
+);
+
+// Staff detail + activity
+router.get(
+  "/:id/activity",
+  authRequired,
+  tenantResolver(),
+  requirePermission("staff", "View"),
+  resolveScope(),
+  staffController.getStaffActivity,
 );
 
 // Invite new staff
@@ -27,7 +38,7 @@ router.post(
   staffInviteRateLimiter,
   authRequired,
   tenantResolver(),
-  requirePermission("settings", "Create"),
+  requirePermission("staff", "Create"),
   requireCsrf,
   validate({ body: inviteStaffSchema }),
   staffController.inviteStaff,
@@ -38,7 +49,7 @@ router.put(
   "/:id/permissions",
   authRequired,
   tenantResolver(),
-  requirePermission("settings", "Edit"),
+  requirePermission("staff", "Edit"),
   requireCsrf,
   validate({ body: updatePermissionsSchema }),
   staffController.updatePermissions,
@@ -49,10 +60,9 @@ router.patch(
   "/:userId/deactivate",
   authRequired,
   tenantResolver(),
-  requirePermission("settings", "Edit"),
+  requirePermission("staff", "Edit"),
   requireCsrf,
   staffController.deactivateStaff,
 );
 
 export default router;
-//
