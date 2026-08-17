@@ -96,7 +96,7 @@ export const staffController = {
 
       const activity = await auditLogService.getByActor(
         req.tenantId!,
-        (staffProfile as any).user?.id || staffProfile.userId,
+        staffProfile.user.id,
         { page, limit, module, startDate, endDate },
       );
 
