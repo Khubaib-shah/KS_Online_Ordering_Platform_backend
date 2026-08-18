@@ -173,6 +173,7 @@ const TENANT_BOOTSTRAP_SELECT = {
   slug: true,
   status: true,
   customDomain: true,
+  domainVerified: true,
   defaultLocale: true,
   isRtl: true,
   theme: {
