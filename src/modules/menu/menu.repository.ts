@@ -33,6 +33,7 @@ const MENU_ITEM_SELECT = {
   availableOnline: true,
   isFeatured: true,
   sortOrder: true,
+  updatedAt: true,
   category: {
     select: { name: true }
   },
