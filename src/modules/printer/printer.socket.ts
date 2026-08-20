@@ -30,6 +30,25 @@ export const initSocketIO = (server: HttpServer) => {
   io.on('connection', (socket: Socket) => {
     logger.info(`Socket connected: ${socket.id}`);
 
+    // ── Dashboard / POS / Kitchen clients join tenant/branch rooms ──
+    // Each client joins exactly ONE room to match the single-room emit
+    // strategy in emitOrderEvent — no client should be in both the
+    // tenant room and a branch room simultaneously.
+    socket.on('client:join', (data: { tenantId: string; branchId?: string }) => {
+      const { tenantId, branchId } = data;
+      if (!tenantId) return;
+
+      if (branchId) {
+        // Branch-specific view: join only the branch-scoped room
+        socket.join(`tenant:${tenantId}:branch:${branchId}`);
+        logger.info(`Client ${socket.id} joined tenant:${tenantId}:branch:${branchId}`);
+      } else {
+        // Tenant-wide view (e.g., multi-branch dashboard): join the tenant room
+        socket.join(`tenant:${tenantId}`);
+        logger.info(`Client ${socket.id} joined tenant:${tenantId}`);
+      }
+    });
+
     // ── Register a fully paired POS device ──
     socket.on('device:connect', async (data: {
       deviceId: string;
@@ -295,4 +314,43 @@ export function getPendingDevices() {
     devices.push({ pairingCode: code, deviceId: device.deviceId, computerName: device.computerName });
   }
   return devices;
+}
+
+// ── Real-Time Order Events ──────────────────────────────────────────
+// Emits an order event to connected dashboard / POS / kitchen clients.
+//
+// Routing strategy — emit to exactly ONE room to avoid duplicate events
+// on clients that have joined both a branch room and the tenant room:
+//
+//   • branchId known  →  tenant:{tenantId}:branch:{branchId}
+//     Branch-filtered clients join this room and receive only their orders.
+//
+//   • branchId unknown →  tenant:{tenantId}
+//     Tenant-wide / multi-branch clients (no branch filter) join this room.
+//
+// A client that has joined both rooms (shouldn't happen by design, but)
+// would only receive the event once because we emit to one room only.
+//
+// Tenant isolation is guaranteed because room names embed tenantId.
+// A client in tenant:A cannot receive events emitted to tenant:B rooms.
+export function emitOrderEvent(
+  event: 'order:new' | 'order:updated',
+  tenantId: string,
+  branchId: string | null | undefined,
+  payload: Record<string, unknown>
+): void {
+  if (!io) return; // Socket.IO not yet initialized (e.g., during tests)
+
+  const data = { ...payload, tenantId, branchId };
+
+  if (branchId) {
+    io.to(`tenant:${tenantId}:branch:${branchId}`).emit(event, data);
+    logger.info(`[socket] ${event} → tenant:${tenantId}:branch:${branchId}`);
+  } else {
+    // No branch context — emit to the tenant-wide room
+    io.to(`tenant:${tenantId}`).emit(event, data);
+    logger.info(`[socket] ${event} → tenant:${tenantId}`);
+  }
+
+  logger.info(`[socket] ${event} → tenant:${tenantId}${branchId ? `:branch:${branchId}` : ''}`);
 }

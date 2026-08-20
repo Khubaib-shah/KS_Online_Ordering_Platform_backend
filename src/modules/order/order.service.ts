@@ -8,6 +8,7 @@ import { recalculateLineItems, createOrderAtomic, OrderItemInput } from './order
 import { printJobService } from '../printer/print-job.service';
 import { deliveryResolutionService } from '../location/delivery-resolution.service';
 import { auditLogService } from '../../lib/audit-log.service';
+import { emitOrderEvent } from '../printer/printer.socket';
 
 export const orderService = {
   /**
@@ -219,6 +220,14 @@ export const orderService = {
       await printJobService.dispatchForOrder(tenantId, order.branch.id, order, ['KITCHEN_DOCKET']);
     }
 
+    // 9. Notify connected dashboard/POS/kitchen clients in real time
+    emitOrderEvent('order:new', tenantId, order?.branch?.id ?? null, {
+      orderId: order?.id,
+      orderNumber: order?.orderNumber,
+      channel: order?.channel,
+      branchId: order?.branch?.id ?? null,
+    });
+
     return order;
   },
 
@@ -238,6 +247,9 @@ export const orderService = {
     specialInstructions?: string | null;
     privateKitchenNotes?: string | null;
     orderNumber?: string;
+    discountAmount?: number;
+    discount_amount?: number;
+    discount?: number;
     createdById?: string;
     author?: string;
   }) {
@@ -259,7 +271,9 @@ export const orderService = {
       const { orderItems, subtotal } = await recalculateLineItems(tx, data.items, { tenantId });
 
       const taxAmount = subtotal.mul(settings.taxRate).div(100);
-      const grandTotal = subtotal.add(taxAmount);
+      const discountVal = data.discountAmount ?? data.discount_amount ?? data.discount ?? 0;
+      const discountAmount = new Decimal(discountVal);
+      const grandTotal = subtotal.add(taxAmount).sub(discountAmount);
 
       // Resolve or create customer for POS
       let customerId = data.customerId;
@@ -285,7 +299,7 @@ export const orderService = {
         paymentStatus: data.fulfillmentType === 'DINE_IN' ? 'UNPAID' : 'PAID', // Dine-in orders are paid later
         subtotal,
         taxAmount,
-        discountAmount: 0,
+        discountAmount,
         deliveryFee: 0,
         grandTotal,
         tableNumber: data.tableNumber,
@@ -389,6 +403,14 @@ export const orderService = {
       await printJobService.dispatchForOrder(tenantId, order.branch.id, order as any, ['RECEIPT', 'KITCHEN_DOCKET']);
     }
 
+    // Notify connected dashboard/POS/kitchen clients in real time
+    emitOrderEvent('order:new', tenantId, order?.branch?.id ?? null, {
+      orderId: order?.id,
+      orderNumber: order?.orderNumber,
+      channel: order?.channel,
+      branchId: order?.branch?.id ?? null,
+    });
+
     return order;
   },
 
@@ -465,6 +487,14 @@ export const orderService = {
     if (status === 'ACCEPTED' && order.channel === 'WEBSITE' && updated?.branch?.id) {
       await printJobService.dispatchForOrder(tenantId, updated.branch.id, updated, ['RECEIPT']);
     }
+
+    // Notify connected clients about the status change
+    emitOrderEvent('order:updated', tenantId, order.branch?.id ?? null, {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status,
+      branchId: order.branch?.id ?? null,
+    });
 
     return updated;
   },
