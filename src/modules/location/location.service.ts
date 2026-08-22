@@ -108,11 +108,14 @@ export class LocationService {
         });
       }
 
-      if (resultAreas.length > 0) {
+      // A zone may intentionally have no child areas and still be a valid
+      // customer-facing delivery destination.
+      if (resultAreas.length > 0 || (zone.areas || []).length === 0) {
         resultZones.push({
           zoneId: zone.id,
           zone: zone.name,
-          areas: resultAreas
+          areas: resultAreas,
+          isZoneOnly: resultAreas.length === 0
         });
       }
     }

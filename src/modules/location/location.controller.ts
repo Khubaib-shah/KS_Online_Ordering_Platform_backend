@@ -37,7 +37,7 @@ export class LocationController {
         return res.status(400).json({ success: false, error: 'Tenant ID is required' });
       }
 
-      const cacheKey = `tenant:${tenantId}:city:${cityId}:areas`;
+      const cacheKey = `tenant:${tenantId}:city:${cityId}:areas:v2`;
       const areasGrouped = await cacheGetOrSet(
         cacheKey,
         () => locationService.getTenantCityAreas(tenantId, cityId),
