@@ -12,6 +12,7 @@ export const createCategorySchema = z.object({
   posSortOrder: z.number().int().optional(),
   isActive: z.boolean().optional(),
   availableOnline: z.boolean().optional(),
+  isAddonCategory: z.boolean().optional(),
 });
 
 export const updateCategorySchema = createCategorySchema.partial();
@@ -47,6 +48,7 @@ export const createMenuItemSchema = z.object({
   isAvailable: z.boolean().optional(),
   availableOnline: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  recommendedItemIds: z.array(z.string()).optional(),
   sortOrder: z.number().int().optional(),
   variantGroups: z.array(variantGroupSchema).optional(),
 });

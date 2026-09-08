@@ -12,6 +12,7 @@ const CATEGORY_SELECT = {
   posSortOrder: true,
   isActive: true,
   availableOnline: true,
+  isAddonCategory: true,
 };
 
 const MENU_ITEM_SELECT = {
@@ -32,6 +33,7 @@ const MENU_ITEM_SELECT = {
   isAvailable: true,
   availableOnline: true,
   isFeatured: true,
+  recommendedItemIds: true,
   sortOrder: true,
   updatedAt: true,
   category: {
