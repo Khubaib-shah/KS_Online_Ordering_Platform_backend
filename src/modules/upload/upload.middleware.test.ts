@@ -15,4 +15,13 @@ describe("upload.middleware", () => {
     expect(isAllowedImage("image/png", png)).toBe(true);
     expect(isAllowedImage("text/plain", png)).toBe(false);
   });
+
+  it("accepts WebP signatures and handles octet-stream fallback", () => {
+    const webp = Buffer.from([
+      0x52, 0x49, 0x46, 0x46, 0x20, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50,
+      0x56, 0x50, 0x38, 0x20,
+    ]);
+    expect(isAllowedImage("image/webp", webp)).toBe(true);
+    expect(isAllowedImage("application/octet-stream", webp)).toBe(true);
+  });
 });

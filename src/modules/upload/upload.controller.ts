@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UploadService } from './upload.service';
+import { isAllowedImage } from './upload.middleware';
 import { sendSuccess } from '../../lib/api-response';
 import { AppError, ForbiddenError } from '../../lib/errors';
 
@@ -17,6 +18,10 @@ export class UploadController {
 
       if (!req.file) {
         throw new AppError('No image file provided', 400, 'BAD_REQUEST');
+      }
+
+      if (!isAllowedImage(req.file.mimetype, req.file.buffer)) {
+        throw new AppError('Invalid file type. Only valid image files are allowed.', 400, 'BAD_REQUEST');
       }
 
       if (!tenantId) {
