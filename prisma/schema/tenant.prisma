@@ -64,6 +64,8 @@ model TenantSettings {
   stripeSecretKeyEnc    String?  @map("stripe_secret_key_enc")
   deliveryFee           Decimal  @default(0) @map("delivery_fee") @db.Decimal(10, 2)
   minOrderValue         Decimal  @default(0) @map("min_order_value") @db.Decimal(10, 2)
+  checkoutMode          String   @default("platform") @map("checkout_mode") @db.VarChar(20)
+  whatsappNumber        String?  @map("whatsapp_number") @db.VarChar(50)
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
   deliveryAreas         Json?    @map("delivery_areas")

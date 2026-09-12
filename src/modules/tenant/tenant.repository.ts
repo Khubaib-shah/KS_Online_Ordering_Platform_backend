@@ -38,6 +38,8 @@ const SETTINGS_PUBLIC_SELECT = {
   minOrderValue: true,
   operatingHours: true,
   deliveryAreas: true,
+  checkoutMode: true,
+  whatsappNumber: true,
   // EXCLUDED: stripePublicKey, stripeSecretKeyEnc
 };
 
