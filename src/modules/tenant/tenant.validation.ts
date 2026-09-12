@@ -68,6 +68,8 @@ export const updateTenantSettingsSchema = z.object({
   address: z.string().optional(),
   receiptHeader: z.string().optional(),
   receiptFooter: z.string().optional(),
+  checkoutMode: z.string().max(20).optional(),
+  whatsappNumber: z.string().max(50).optional().nullable(),
   deliveryFee: z.number().min(0).optional(),
   minOrderValue: z.number().min(0).optional(),
   operatingHours: z.any().optional(),
