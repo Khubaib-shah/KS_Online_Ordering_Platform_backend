@@ -75,7 +75,14 @@ export function requirePermission(module: string, action: string = 'View') {
         } : null,
       };
 
-      if (staffProfile.isOwner) {
+      if (staffProfile.isOwner || (!staffProfile.roleId && req.user.tenantId)) {
+        if (!staffProfile.isOwner) {
+          await prisma.staffProfile.update({
+            where: { id: staffProfile.id },
+            data: { isOwner: true },
+          });
+          req.staffProfile.isOwner = true;
+        }
         return next();
       }
 

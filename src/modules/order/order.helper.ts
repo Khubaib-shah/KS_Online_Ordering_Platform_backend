@@ -40,7 +40,7 @@ export interface OrderItemInput {
 export async function recalculateLineItems(
   tx: any,
   items: OrderItemInput[],
-  options: { tenantId?: string; requireAvailableOnline?: boolean } = {}
+  options: { tenantId?: string; requireAvailableOnline?: boolean; branchId?: string } = {}
 ) {
   const orderItems = [];
   let subtotal = new Decimal(0);
@@ -75,6 +75,25 @@ export async function recalculateLineItems(
     }
     if (!menuItem.isAvailable) {
       throw new ValidationError(`Item '${menuItem.name}' is currently unavailable`);
+    }
+
+    // ── Branch-specific availability guard ──────────────────────────
+    // Check if this item has been explicitly disabled for the target branch.
+    if (options.branchId) {
+      const branchOverride = await tx.branchMenuItem.findUnique({
+        where: {
+          branchId_menuItemId: {
+            branchId: options.branchId,
+            menuItemId: item.menuItemId,
+          },
+        },
+        select: { isAvailable: true },
+      });
+      if (branchOverride && !branchOverride.isAvailable) {
+        throw new ValidationError(
+          `Item '${menuItem.name}' is not available at the selected branch`
+        );
+      }
     }
 
     let unitPrice = menuItem.discountedPrice

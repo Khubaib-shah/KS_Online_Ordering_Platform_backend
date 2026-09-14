@@ -1,0 +1,29 @@
+// ─── Branch Menu Override (Sparse Availability Model) ───────────────
+//
+// This table ONLY holds overrides from the central/global menu defaults.
+// If no row exists for a (branchId, menuItemId) pair, the item inherits
+// the central default: enabled at its standard price.
+//
+// This ensures:
+//   • Zero overhead for new branches (no rows to create at branch setup)
+//   • Supports future branch-specific pricing via priceOverride
+//   • Cascading deletes keep data clean if a branch/item is removed
+
+model BranchMenuItem {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  branchId      String   @map("branch_id")
+  menuItemId    String   @map("menu_item_id")
+  isAvailable   Boolean  @default(false) @map("is_available") // false = disabled at this branch
+  priceOverride Decimal? @map("price_override") @db.Decimal(10, 2) // null = use global price
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, menuItemId])
+  @@index([tenantId, branchId])
+  @@map("branch_menu_items")
+}

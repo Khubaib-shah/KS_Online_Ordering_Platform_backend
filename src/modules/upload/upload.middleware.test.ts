@@ -1,10 +1,20 @@
-import { sanitizeFilename, isAllowedImage } from "./upload.middleware";
+import { sanitizeFilename, slugifyFilename, isAllowedImage } from "./upload.middleware";
 
 describe("upload.middleware", () => {
   it("sanitizes unsafe upload names", () => {
     expect(sanitizeFilename("../../etc/passwd;rm -rf /")).toBe(
       "etc-passwd-rm-rf",
     );
+  });
+
+  it("slugifies titles and filenames properly", () => {
+    expect(slugifyFilename("Zinger Burger")).toBe("zinger-burger");
+    expect(slugifyFilename("  Special BBQ Platter (Family Pack) #1!  ")).toBe(
+      "special-bbq-platter-family-pack-1",
+    );
+    expect(slugifyFilename("Classic Fajita Pizza")).toBe("classic-fajita-pizza");
+    expect(slugifyFilename("---multiple---hyphens---")).toBe("multiple-hyphens");
+    expect(slugifyFilename("")).toBe("");
   });
 
   it("accepts PNG signatures and rejects non-image MIME types", () => {

@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import { UploadService } from './upload.service';
-import { isAllowedImage } from './upload.middleware';
+import { isAllowedImage, slugifyFilename } from './upload.middleware';
 import { sendSuccess } from '../../lib/api-response';
 import { AppError, ForbiddenError } from '../../lib/errors';
 
 export class UploadController {
   static async uploadImage(req: Request, res: Response, next: NextFunction) {
     try {
-      const { imageType, tenantSlug } = req.body;
+      const { imageType, tenantSlug, customName, fileName } = req.body;
       // Prefer the resolved tenant context; fall back to the form field so the
       // Super Admin create wizard can upload before the tenant exists.
       const tenantId = req.tenantId || (typeof tenantSlug === 'string' && tenantSlug.trim() ? tenantSlug.trim() : undefined);
@@ -28,10 +28,24 @@ export class UploadController {
         throw new AppError('Tenant identification is required (X-Tenant-Id header or tenantSlug form field)', 400, 'TENANT_REQUIRED');
       }
 
+      // Determine public_id filename from customName / fileName or fallback to sanitized originalname
+      let baseName = '';
+      if (typeof customName === 'string' && customName.trim()) {
+        baseName = customName.trim();
+      } else if (typeof fileName === 'string' && fileName.trim()) {
+        baseName = fileName.trim();
+      } else if (req.file.originalname) {
+        // Strip extension from originalname
+        baseName = req.file.originalname.replace(/\.[^/.]+$/, '');
+      }
+
+      const sanitizedSlug = slugifyFilename(baseName) || undefined;
+
       const metadata = await UploadService.uploadImage(
         req.file.buffer,
         tenantId, // Prefixing with tenant ID instead of arbitrary slug
-        imageType
+        imageType,
+        sanitizedSlug
       );
 
       return sendSuccess(res, metadata, 200, { message: 'Image uploaded successfully' });

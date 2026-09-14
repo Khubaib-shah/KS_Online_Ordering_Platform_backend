@@ -22,12 +22,14 @@ const variantOptionSchema = z.object({
   name: z.string().min(1).max(255),
   priceModifier: z.number().min(0),
   isDefault: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
 });
 
 const variantGroupSchema = z.object({
   title: z.string().min(1).max(255),
   minSelect: z.number().int().min(0).optional(),
   maxSelect: z.number().int().min(1).optional(),
+  sortOrder: z.number().int().optional(),
   options: z.array(variantOptionSchema).min(1),
 });
 

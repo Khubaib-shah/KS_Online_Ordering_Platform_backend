@@ -43,6 +43,15 @@ export const authService = {
       if (user.tenant?.status === 'SUSPENDED') {
         throw new UnauthorizedError('Your tenant account has been suspended');
       }
+
+      // Self-healing: If user belongs to a tenant and has no staff role assigned, ensure isOwner = true
+      if (user.tenantId && user.staffProfile && !user.staffProfile.isOwner && !user.staffProfile.roleId) {
+        await prisma.staffProfile.update({
+          where: { userId: user.id },
+          data: { isOwner: true },
+        });
+        user.staffProfile.isOwner = true;
+      }
     }
 
     const tokenPayload: JwtPayload = {
@@ -122,6 +131,16 @@ export const authService = {
     });
 
     if (!user) throw new NotFoundError('User', userId);
+
+    if (user.tenantId && user.globalRole !== 'SUPER_ADMIN') {
+      if (user.staffProfile && !user.staffProfile.isOwner && !user.staffProfile.roleId) {
+        await prisma.staffProfile.update({
+          where: { userId: user.id },
+          data: { isOwner: true },
+        });
+        user.staffProfile.isOwner = true;
+      }
+    }
 
     const activeShift = await prisma.cashierShift.findFirst({
       where: {

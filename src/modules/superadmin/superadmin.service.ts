@@ -23,6 +23,10 @@ export const superadminService = {
     return tenantService.updateTenantAndOwner(id, data);
   },
 
+  async resetTenantPassword(tenantId: string, newPassword = 'Password123!') {
+    return tenantService.resetOwnerPassword(tenantId, newPassword);
+  },
+
   async getTenantDetail(id: string) {
     return tenantService.getById(id);
   },

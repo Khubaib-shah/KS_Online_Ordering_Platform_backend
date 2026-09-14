@@ -19,17 +19,26 @@ export class UploadService {
   static async uploadImage(
     fileBuffer: Buffer,
     tenantSlug: string,
-    imageType: string
+    imageType: string,
+    customFilename?: string
   ): Promise<CloudinaryImageMetadata> {
     try {
       const folderPath = `shopes/${tenantSlug}/${imageType}`;
 
+      const uploadOptions: Record<string, any> = {
+        folder: folderPath,
+        resource_type: 'image',
+      };
+
+      if (customFilename && customFilename.trim()) {
+        uploadOptions.public_id = customFilename.trim();
+        uploadOptions.overwrite = true;
+        uploadOptions.unique_filename = false;
+      }
+
       const result = await new Promise<any>((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: folderPath,
-            resource_type: 'image',
-          },
+          uploadOptions,
           (error, result) => {
             if (error) return reject(error);
             resolve(result);
@@ -71,11 +80,12 @@ export class UploadService {
     fileBuffer: Buffer,
     oldPublicId: string,
     tenantSlug: string,
-    imageType: string
+    imageType: string,
+    customFilename?: string
   ): Promise<CloudinaryImageMetadata> {
     if (oldPublicId) {
       await this.deleteImage(oldPublicId);
     }
-    return this.uploadImage(fileBuffer, tenantSlug, imageType);
+    return this.uploadImage(fileBuffer, tenantSlug, imageType, customFilename);
   }
 }

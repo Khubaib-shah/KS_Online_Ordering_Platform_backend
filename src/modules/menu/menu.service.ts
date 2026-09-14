@@ -82,4 +82,22 @@ export const menuService = {
     await cacheInvalidateByTag(`catalog:${tenantId}`);
     return result;
   },
+
+  // ── Branch Availability (Central Catalog Switch) ──
+
+  async getBranchAvailabilityMap(tenantId: string) {
+    return menuRepository.getBranchAvailabilityMap(tenantId);
+  },
+
+  async toggleBranchMenuItem(
+    tenantId: string,
+    branchId: string,
+    menuItemId: string,
+    isAvailable: boolean
+  ) {
+    const result = await menuRepository.toggleBranchMenuItem(tenantId, branchId, menuItemId, isAvailable);
+    // Invalidate the public catalog cache so the ordering template sees the change
+    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    return result;
+  },
 };

@@ -29,6 +29,7 @@ model Branch {
   staffProfiles   StaffProfile[]
   tables          Table[]
   cashierShifts   CashierShift[]
+  menuOverrides   BranchMenuItem[]
 
   @@index([tenantId])
   @@map("branches")

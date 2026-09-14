@@ -74,6 +74,7 @@ export const orderService = {
       const { orderItems, subtotal } = await recalculateLineItems(tx, data.items, {
         tenantId,
         requireAvailableOnline: true,
+        branchId, // Guard: reject items disabled at this branch
       });
 
       // 4. Calculate tax, delivery fee, promo discount

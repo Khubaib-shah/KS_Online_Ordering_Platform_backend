@@ -50,6 +50,7 @@ model MenuItem {
   tenant              Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   orderItems          OrderItem[]
   variantGroups       VariantGroup[]
+  branchOverrides     BranchMenuItem[]
 
   @@index([tenantId, categoryId])
   @@index([tenantId, isAvailable])
@@ -63,6 +64,7 @@ model VariantGroup {
   title      String          @db.VarChar(255)
   minSelect  Int             @default(0) @map("min_select")
   maxSelect  Int             @default(1) @map("max_select")
+  sortOrder  Int             @default(0) @map("sort_order")
   createdAt  DateTime        @default(now()) @map("created_at")
   updatedAt  DateTime        @updatedAt @map("updated_at")
   menuItem   MenuItem        @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
@@ -78,6 +80,7 @@ model VariantOption {
   name           String       @db.VarChar(255)
   priceModifier  Decimal      @default(0) @map("price_modifier") @db.Decimal(10, 2)
   isDefault      Boolean      @default(false) @map("is_default")
+  sortOrder      Int          @default(0) @map("sort_order")
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   variantGroup   VariantGroup @relation(fields: [variantGroupId], references: [id], onDelete: Cascade)

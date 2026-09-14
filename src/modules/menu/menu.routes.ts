@@ -118,4 +118,21 @@ router.patch(
   menuController.toggleOnlineAvailability
 );
 
+// ── Branch Availability (Central Catalog Switch) ──
+router.get(
+  '/menu/branch-availability',
+  authRequired,
+  tenantResolver(),
+  requirePermission('menu', 'View'),
+  menuController.getBranchAvailability
+);
+
+router.post(
+  '/menu/branch-availability',
+  authRequired,
+  tenantResolver(),
+  requirePermission('menu', 'Edit'),
+  menuController.toggleBranchAvailability
+);
+
 export default router;

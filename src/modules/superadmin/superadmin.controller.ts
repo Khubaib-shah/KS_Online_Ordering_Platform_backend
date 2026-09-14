@@ -51,6 +51,16 @@ export const superadminController = {
     }
   },
 
+  async resetTenantPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const password = req.body?.password || 'Password123!';
+      const result = await superadminService.resetTenantPassword(req.params.id, password);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
   async getTenantDetail(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const tenant = await superadminService.getTenantDetail(req.params.id);

@@ -39,6 +39,7 @@ model Tenant {
   roles           Role[]
   orderSequence   OrderSequence?
   city            City?                @relation(fields: [cityId], references: [id])
+  branchMenuOverrides BranchMenuItem[]
   cityId          String?              @map("city_id")
 
   @@map("tenants")

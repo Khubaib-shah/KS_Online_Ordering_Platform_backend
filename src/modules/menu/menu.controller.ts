@@ -127,4 +127,29 @@ export const menuController = {
       next(error);
     }
   },
+
+  // ── Branch Availability (Central Catalog Switch) ──
+
+  async getBranchAvailability(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const map = await menuService.getBranchAvailabilityMap(req.tenantId!);
+      sendSuccess(res, map);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async toggleBranchAvailability(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { branchId, menuItemId, isAvailable } = req.body;
+      if (!branchId || !menuItemId || typeof isAvailable !== 'boolean') {
+        res.status(400).json({ success: false, message: 'branchId, menuItemId, and isAvailable (boolean) are required.' });
+        return;
+      }
+      const result = await menuService.toggleBranchMenuItem(req.tenantId!, branchId, menuItemId, isAvailable);
+      sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  },
 };

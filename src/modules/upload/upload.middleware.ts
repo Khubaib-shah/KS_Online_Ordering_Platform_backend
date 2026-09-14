@@ -29,6 +29,16 @@ export function sanitizeFilename(filename: string): string {
   return sanitized;
 }
 
+export function slugifyFilename(name: string): string {
+  return (name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 100);
+}
+
 export function isAllowedImage(mimetype: string, buffer?: Buffer): boolean {
   if (!mimetype) return false;
 

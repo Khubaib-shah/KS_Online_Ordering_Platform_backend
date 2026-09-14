@@ -2,6 +2,7 @@
 // Business logic — never touches req/res.
 
 import { tenantRepository } from './tenant.repository';
+import { prisma } from '../../config/database';
 import { cacheGetOrSet, cacheInvalidateByTag } from '../../lib/cache';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors';
 import bcrypt from 'bcryptjs';
@@ -427,12 +428,18 @@ export const tenantService = {
       }
 
       // 3. Find and update the OWNER user
-      const ownerUser = await tx.user.findFirst({
+      let ownerUser = await tx.user.findFirst({
         where: {
           tenantId: id,
           staffProfile: { isOwner: true },
         },
       });
+
+      if (!ownerUser) {
+        ownerUser = await tx.user.findFirst({
+          where: { tenantId: id },
+        });
+      }
 
       if (ownerUser) {
         const userUpdateData: any = {};
@@ -465,5 +472,63 @@ export const tenantService = {
 
     await cacheInvalidateByTag(`tenant:*`);
     return this.getById(id);
+  },
+
+  async resetOwnerPassword(tenantId: string, newPassword = 'Password123!') {
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!tenant) {
+      throw new NotFoundError('Tenant', tenantId);
+    }
+
+    // Find the owner user first, fallback to first user associated with this tenant
+    let targetUser = await prisma.user.findFirst({
+      where: {
+        tenantId,
+        staffProfile: { isOwner: true },
+      },
+      select: { id: true, email: true, name: true },
+    });
+
+    if (!targetUser) {
+      targetUser = await prisma.user.findFirst({
+        where: { tenantId },
+        select: { id: true, email: true, name: true },
+      });
+    }
+
+    if (!targetUser) {
+      throw new NotFoundError('No user account found for this tenant', tenantId);
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({
+      where: { id: targetUser.id },
+      data: { passwordHash },
+    });
+
+    // Ensure staff profile is marked as owner
+    await prisma.staffProfile.upsert({
+      where: { userId: targetUser.id },
+      create: {
+        userId: targetUser.id,
+        isOwner: true,
+      },
+      update: {
+        isOwner: true,
+      },
+    });
+
+    return {
+      tenantId,
+      tenantName: tenant.name,
+      userId: targetUser.id,
+      ownerEmail: targetUser.email,
+      ownerName: targetUser.name,
+      newPassword,
+      message: `Password for ${targetUser.email} has been reset to "${newPassword}".`,
+    };
   },
 };

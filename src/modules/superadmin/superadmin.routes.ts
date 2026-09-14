@@ -45,6 +45,12 @@ router.put(
   superadminController.updateTenant
 );
 
+// Reset tenant owner password (defaults to Password123!)
+router.post(
+  '/tenants/:id/reset-password',
+  superadminController.resetTenantPassword
+);
+
 // Support tickets
 router.get('/escalations', superadminController.listSupportEscalations);
 

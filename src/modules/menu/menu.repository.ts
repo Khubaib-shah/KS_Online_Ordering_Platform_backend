@@ -39,6 +39,10 @@ const MENU_ITEM_SELECT = {
   category: {
     select: { name: true }
   },
+  // Include branch overrides so the consumer template can filter without extra API calls
+  branchOverrides: {
+    select: { branchId: true, isAvailable: true },
+  },
 };
 
 const VARIANT_INCLUDE = {
@@ -48,17 +52,25 @@ const VARIANT_INCLUDE = {
       title: true,
       minSelect: true,
       maxSelect: true,
+      sortOrder: true,
       options: {
         select: {
           id: true,
           name: true,
           priceModifier: true,
           isDefault: true,
+          sortOrder: true,
         },
-        orderBy: { createdAt: 'asc' as const },
+        orderBy: [
+          { sortOrder: 'asc' as const },
+          { createdAt: 'asc' as const },
+        ],
       },
     },
-    orderBy: { createdAt: 'asc' as const },
+    orderBy: [
+      { sortOrder: 'asc' as const },
+      { createdAt: 'asc' as const },
+    ],
   },
 };
 
@@ -117,7 +129,65 @@ export const menuRepository = {
       },
       orderBy: { sortOrder: 'asc' },
     });
-    return categories;
+
+    // Transform: convert branchOverrides[] → disabledBranchIds[] for clean API response
+    return categories.map((cat) => ({
+      ...cat,
+      menuItems: cat.menuItems.map((item: any) => {
+        const disabledBranchIds = (item.branchOverrides || [])
+          .filter((o: any) => !o.isAvailable)
+          .map((o: any) => o.branchId);
+        const { branchOverrides, ...rest } = item;
+        return { ...rest, disabledBranchIds };
+      }),
+    }));
+  },
+
+  // ── Branch Availability (Admin) ──
+
+  /**
+   * Returns a map of { [branchId]: [disabledMenuItemId, ...] }
+   * for display in the Branch Management > Product Availability tab.
+   */
+  async getBranchAvailabilityMap(tenantId: string): Promise<Record<string, string[]>> {
+    const overrides = await prisma.branchMenuItem.findMany({
+      where: { tenantId, isAvailable: false },
+      select: { branchId: true, menuItemId: true },
+    });
+
+    const map: Record<string, string[]> = {};
+    for (const row of overrides) {
+      if (!map[row.branchId]) map[row.branchId] = [];
+      map[row.branchId].push(row.menuItemId);
+    }
+    return map;
+  },
+
+  /**
+   * Upserts a branch-item override. Pass isAvailable=false to disable,
+   * isAvailable=true to re-enable (removes the override row for cleanliness).
+   */
+  async toggleBranchMenuItem(
+    tenantId: string,
+    branchId: string,
+    menuItemId: string,
+    isAvailable: boolean
+  ) {
+    if (isAvailable) {
+      // Re-enabling: delete the override row so it inherits the global default
+      await prisma.branchMenuItem.deleteMany({
+        where: { tenantId, branchId, menuItemId },
+      });
+      return { branchId, menuItemId, isAvailable: true };
+    } else {
+      // Disabling: upsert the override row
+      return prisma.branchMenuItem.upsert({
+        where: { branchId_menuItemId: { branchId, menuItemId } },
+        update: { isAvailable: false },
+        create: { tenantId, branchId, menuItemId, isAvailable: false },
+        select: { branchId: true, menuItemId: true, isAvailable: true },
+      });
+    }
   },
 
   async listMenuItems(tenantId: string, filters: {
@@ -166,15 +236,17 @@ export const menuRepository = {
         tenantId,
         ...itemData,
         variantGroups: variantGroups ? {
-          create: variantGroups.map((vg: any) => ({
+          create: variantGroups.map((vg: any, vgIdx: number) => ({
             title: vg.title,
             minSelect: vg.minSelect || 0,
             maxSelect: vg.maxSelect || 1,
+            sortOrder: vg.sortOrder ?? (vgIdx + 1),
             options: {
-              create: vg.options.map((opt: any) => ({
+              create: vg.options.map((opt: any, optIdx: number) => ({
                 name: opt.name,
                 priceModifier: opt.priceModifier || 0,
                 isDefault: opt.isDefault || false,
+                sortOrder: opt.sortOrder ?? (optIdx + 1),
               })),
             },
           })),
@@ -194,18 +266,20 @@ export const menuRepository = {
     if (variantGroups) {
       await prisma.variantGroup.deleteMany({ where: { menuItemId: id } });
 
-      for (const vg of variantGroups) {
+      for (const [vgIdx, vg] of variantGroups.entries()) {
         await prisma.variantGroup.create({
           data: {
             menuItemId: id,
             title: vg.title,
             minSelect: vg.minSelect || 0,
             maxSelect: vg.maxSelect || 1,
+            sortOrder: vg.sortOrder ?? (vgIdx + 1),
             options: {
-              create: vg.options.map((opt: any) => ({
+              create: vg.options.map((opt: any, optIdx: number) => ({
                 name: opt.name,
                 priceModifier: opt.priceModifier || 0,
                 isDefault: opt.isDefault || false,
+                sortOrder: opt.sortOrder ?? (optIdx + 1),
               })),
             },
           },
