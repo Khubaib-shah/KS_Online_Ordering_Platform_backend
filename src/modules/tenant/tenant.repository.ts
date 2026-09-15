@@ -141,6 +141,18 @@ const TENANT_COMPLETE_SELECT = {
       areaId: true,
     },
   },
+  _count: {
+    select: {
+      categories: true,
+      menuItems: true,
+      orders: true,
+      promotions: true,
+      branches: true,
+      users: true,
+      customers: true,
+      tables: true,
+    },
+  },
 };
 
 const TENANT_RESOLVE_SELECT = {
@@ -346,10 +358,7 @@ export const tenantRepository = {
       prisma.tenant.findMany({
         skip,
         take,
-        select: {
-          ...TENANT_COMPLETE_SELECT,
-          _count: { select: { branches: true, orders: true } },
-        },
+        select: TENANT_COMPLETE_SELECT,
         orderBy: { createdAt: 'desc' },
       }),
       prisma.tenant.count(),

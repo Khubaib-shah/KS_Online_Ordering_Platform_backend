@@ -185,9 +185,132 @@ export const tenantService = {
   },
 
   async getById(id: string) {
-    const tenant = await tenantRepository.findById(id);
+    const [
+      tenant,
+      orderAggregates,
+      activeOrdersCount,
+      recentOrders,
+      last7DaysOrders,
+    ] = await Promise.all([
+      tenantRepository.findById(id),
+      prisma.order.aggregate({
+        where: {
+          tenantId: id,
+          status: { not: 'CANCELLED' },
+        },
+        _sum: { grandTotal: true },
+        _count: { id: true },
+      }),
+      prisma.order.count({
+        where: {
+          tenantId: id,
+          status: { in: ['PENDING', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'] },
+        },
+      }),
+      prisma.order.findMany({
+        where: { tenantId: id },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          orderNumber: true,
+          channel: true,
+          fulfillmentType: true,
+          status: true,
+          paymentMethod: true,
+          paymentStatus: true,
+          grandTotal: true,
+          createdAt: true,
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+              email: true,
+            },
+          },
+          branch: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      }),
+      prisma.order.findMany({
+        where: {
+          tenantId: id,
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
+          status: { not: 'CANCELLED' },
+        },
+        select: {
+          createdAt: true,
+          grandTotal: true,
+          status: true,
+        },
+      }),
+    ]);
+
     if (!tenant) throw new NotFoundError('Tenant', id);
-    return normaliseTenant(tenant);
+
+    const totalRevenue = Number(orderAggregates._sum.grandTotal || 0);
+    const totalOrders = orderAggregates._count.id || 0;
+    const averageOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const velocityMap = new Map<string, { date: string; day: string; Revenue: number; Orders: number }>();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateKey = d.toISOString().split('T')[0];
+      velocityMap.set(dateKey, {
+        date: dateKey,
+        day: days[d.getDay()],
+        Revenue: 0,
+        Orders: 0,
+      });
+    }
+
+    last7DaysOrders.forEach((order) => {
+      const dateKey = order.createdAt.toISOString().split('T')[0];
+      const entry = velocityMap.get(dateKey);
+      if (entry) {
+        entry.Revenue += Number(order.grandTotal || 0);
+        entry.Orders += 1;
+      }
+    });
+
+    const orderVelocity = Array.from(velocityMap.values());
+
+    const normalised = normaliseTenant(tenant);
+    return {
+      ...normalised,
+      stats: {
+        totalRevenue,
+        totalOrders,
+        activeOrdersCount,
+        averageOrderValue,
+      },
+      recentOrders: recentOrders.map((o: any) => ({
+        id: o.id,
+        orderNumber: o.orderNumber,
+        placedAt: o.createdAt,
+        customer: {
+          name: o.customer?.name || 'Walk-in Guest',
+          phone: o.customer?.phone || '-',
+          email: o.customer?.email || '',
+        },
+        branchName: o.branch?.name || 'Main Branch',
+        fulfillmentType: o.fulfillmentType,
+        paymentMethod: o.paymentMethod,
+        paymentStatus: o.paymentStatus,
+        status: o.status.toLowerCase(),
+        grandTotal: Number(o.grandTotal || 0),
+      })),
+      orderVelocity,
+    };
   },
 
   async createWithOwner(data: {
@@ -404,13 +527,15 @@ export const tenantService = {
       if (data.status) updateData.status = data.status;
 
       if (data.settings) {
-        updateData.settings = { upsert: { create: data.settings, update: data.settings } };
+        const { id: _sId, tenantId: _tId, createdAt: _sc, updatedAt: _su, ...settingsData } = data.settings;
+        updateData.settings = { upsert: { create: settingsData, update: settingsData } };
       }
       if (data.theme) {
-        updateData.theme = { upsert: { create: data.theme, update: data.theme } };
+        const { id: _thId, tenantId: _thtId, createdAt: _thc, updatedAt: _thu, ...themeData } = data.theme;
+        updateData.theme = { upsert: { create: themeData, update: themeData } };
       }
       if (data.content) {
-        const { faqs, privacyPolicy, ...contentData } = data.content;
+        const { id: _cId, tenantId: _ctId, createdAt: _cc, updatedAt: _cu, faqs, privacyPolicy, ...contentData } = data.content;
         updateData.content = { upsert: { create: contentData, update: contentData } };
       }
 
