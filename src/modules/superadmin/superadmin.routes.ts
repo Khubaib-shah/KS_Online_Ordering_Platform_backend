@@ -51,6 +51,12 @@ router.post(
   superadminController.resetTenantPassword
 );
 
+// Purge storefront and backend cache for tenant
+router.post(
+  '/tenants/:id/purge-cache',
+  superadminController.purgeTenantCache
+);
+
 // Support tickets
 router.get('/escalations', superadminController.listSupportEscalations);
 

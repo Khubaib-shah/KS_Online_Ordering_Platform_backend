@@ -40,6 +40,7 @@ const SETTINGS_PUBLIC_SELECT = {
   deliveryAreas: true,
   checkoutMode: true,
   whatsappNumber: true,
+  cacheTtl: true,
   // EXCLUDED: stripePublicKey, stripeSecretKeyEnc
 };
 

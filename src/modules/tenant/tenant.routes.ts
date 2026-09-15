@@ -77,6 +77,13 @@ router.put(
   tenantController.updateContent
 );
 
+router.post(
+  '/purge-cache',
+  authRequired,
+  tenantResolver(),
+  tenantController.purgeCache
+);
+
 // ── Super Admin ──
 router.get(
   '/all',

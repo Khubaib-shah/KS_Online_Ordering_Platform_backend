@@ -3,6 +3,10 @@ type Request = ExpressRequest<any>;
 import { superadminService } from './superadmin.service';
 import { sendSuccess, sendPaginated } from '../../lib/api-response';
 import { parsePagination } from '../../lib/pagination';
+import { prisma } from '../../config/database';
+import { cacheInvalidateByTag } from '../../lib/cache';
+import { triggerStorefrontRevalidation } from '../../lib/storefront-revalidate';
+import { NotFoundError } from '../../lib/errors';
 
 export const superadminController = {
   async listTenants(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -129,6 +133,35 @@ export const superadminController = {
     try {
       await superadminService.deleteGlobalArea(req.params.id);
       sendSuccess(res, { message: 'Area deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async purgeTenantCache(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const tenant = await prisma.tenant.findUnique({
+        where: { id },
+        select: { id: true, name: true, slug: true },
+      });
+      if (!tenant) {
+        throw new NotFoundError('Tenant', id);
+      }
+
+      await cacheInvalidateByTag(`tenant:*:${tenant.id}*`);
+      await cacheInvalidateByTag(`tenant:resolve:*`);
+      await cacheInvalidateByTag(`tenant:bootstrap:*`);
+      await cacheInvalidateByTag(`catalog:${tenant.id}`);
+
+      const revalidated = await triggerStorefrontRevalidation(tenant.slug);
+
+      sendSuccess(res, {
+        revalidated,
+        tenantId: tenant.id,
+        slug: tenant.slug,
+        message: `Cache purged successfully for ${tenant.name}`,
+      });
     } catch (error) {
       next(error);
     }

@@ -5,7 +5,19 @@ import { tenantRepository } from './tenant.repository';
 import { prisma } from '../../config/database';
 import { cacheGetOrSet, cacheInvalidateByTag } from '../../lib/cache';
 import { NotFoundError, ConflictError, ValidationError } from '../../lib/errors';
+import { triggerStorefrontRevalidation } from '../../lib/storefront-revalidate';
 import bcrypt from 'bcryptjs';
+
+async function revalidateStorefront(tenantId: string) {
+  try {
+    const tenant = await tenantRepository.findById(tenantId);
+    if (tenant?.slug) {
+      triggerStorefrontRevalidation(tenant.slug).catch(() => {});
+    }
+  } catch (e) {
+    console.warn('[revalidateStorefront] Failed:', e);
+  }
+}
 
 // ─── Shared Helpers ─────────────────────────────────────────────────
 
@@ -454,6 +466,7 @@ export const tenantService = {
     await cacheInvalidateByTag(`tenant:*:${tenantId}*`);
     await cacheInvalidateByTag(`tenant:resolve:*`);
     await cacheInvalidateByTag(`tenant:bootstrap:*`);
+    revalidateStorefront(tenantId).catch(() => {});
     return result;
   },
 
@@ -462,6 +475,7 @@ export const tenantService = {
     await cacheInvalidateByTag(`tenant:*:${tenantId}*`);
     await cacheInvalidateByTag(`tenant:resolve:*`);
     await cacheInvalidateByTag(`tenant:bootstrap:*`);
+    revalidateStorefront(tenantId).catch(() => {});
     return result;
   },
 
@@ -476,6 +490,7 @@ export const tenantService = {
     await cacheInvalidateByTag(`tenant:*:${tenantId}*`);
     await cacheInvalidateByTag(`tenant:resolve:*`);
     await cacheInvalidateByTag(`tenant:bootstrap:*`);
+    revalidateStorefront(tenantId).catch(() => {});
     return result;
   },
 
@@ -487,6 +502,7 @@ export const tenantService = {
   async updateStatus(id: string, status: any) {
     const result = await tenantRepository.updateStatus(id, status);
     await cacheInvalidateByTag(`tenant:*`);
+    revalidateStorefront(id).catch(() => {});
     return result;
   },
 
@@ -596,6 +612,7 @@ export const tenantService = {
     });
 
     await cacheInvalidateByTag(`tenant:*`);
+    revalidateStorefront(id).catch(() => {});
     return this.getById(id);
   },
 

@@ -7,6 +7,10 @@ import { tenantService } from './tenant.service';
 import { sendSuccess, sendPaginated } from '../../lib/api-response';
 import { parsePagination } from '../../lib/pagination';
 import { superadminService } from '../superadmin/superadmin.service';
+import { prisma } from '../../config/database';
+import { cacheInvalidateByTag } from '../../lib/cache';
+import { triggerStorefrontRevalidation } from '../../lib/storefront-revalidate';
+import { NotFoundError } from '../../lib/errors';
 
 export const tenantController = {
   async resolve(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -133,6 +137,35 @@ export const tenantController = {
       const { status } = req.body;
       const result = await tenantService.updateStatus(req.params.id, status);
       sendSuccess(res, result);
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  async purgeCache(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tenantId = req.tenantId!;
+      const tenant = await prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { id: true, name: true, slug: true },
+      });
+      if (!tenant) {
+        throw new NotFoundError('Tenant', tenantId);
+      }
+
+      await cacheInvalidateByTag(`tenant:*:${tenant.id}*`);
+      await cacheInvalidateByTag(`tenant:resolve:*`);
+      await cacheInvalidateByTag(`tenant:bootstrap:*`);
+      await cacheInvalidateByTag(`catalog:${tenant.id}`);
+
+      const revalidated = await triggerStorefrontRevalidation(tenant.slug);
+
+      sendSuccess(res, {
+        revalidated,
+        tenantId: tenant.id,
+        slug: tenant.slug,
+        message: `Website cache purged successfully for ${tenant.name}`,
+      });
     } catch (error) {
       next(error);
     }

@@ -74,6 +74,7 @@ export const updateTenantSettingsSchema = z.object({
   minOrderValue: z.number().min(0).optional(),
   operatingHours: z.any().optional(),
   deliveryAreas: z.any().optional(),
+  cacheTtl: z.number().int().min(0).optional(),
 });
 
 export const updateTenantThemeSchema = z.object({

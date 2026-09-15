@@ -4,6 +4,20 @@ import { menuRepository } from './menu.repository';
 import { cacheGetOrSet, cacheInvalidateByTag } from '../../lib/cache';
 import { NotFoundError } from '../../lib/errors';
 import { enforcePlanLimit } from '../../lib/plan-limits';
+import { prisma } from '../../config/database';
+import { triggerStorefrontRevalidation } from '../../lib/storefront-revalidate';
+
+async function invalidateCatalog(tenantId: string) {
+  await cacheInvalidateByTag(`catalog:${tenantId}`);
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { slug: true } });
+    if (tenant?.slug) {
+      triggerStorefrontRevalidation(tenant.slug, 'catalog').catch(() => {});
+    }
+  } catch (err) {
+    console.warn('[invalidateCatalog] Storefront revalidation failed:', err);
+  }
+}
 
 export const menuService = {
   // ── Public Catalog (cached) ──
@@ -26,19 +40,19 @@ export const menuService = {
 
   async createCategory(tenantId: string, data: any) {
     const result = await menuRepository.createCategory(tenantId, data);
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
     return result;
   },
 
   async updateCategory(id: string, tenantId: string, data: any) {
     const result = await menuRepository.updateCategory(id, tenantId, data);
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
     return result;
   },
 
   async deleteCategory(id: string, tenantId: string) {
     await menuRepository.deleteCategory(id, tenantId);
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
   },
 
   // ── Menu Items ──
@@ -56,30 +70,30 @@ export const menuService = {
   async createMenuItem(tenantId: string, data: any) {
     await enforcePlanLimit(tenantId, 'MENU_ITEM');
     const result = await menuRepository.createMenuItem(tenantId, data);
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
     return result;
   },
 
   async updateMenuItem(id: string, tenantId: string, data: any) {
     const result = await menuRepository.updateMenuItem(id, tenantId, data);
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
     return result;
   },
 
   async deleteMenuItem(id: string, tenantId: string) {
     await menuRepository.deleteMenuItem(id, tenantId);
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
   },
 
   async toggleAvailability(id: string, tenantId: string, isAvailable: boolean) {
     const result = await menuRepository.toggleAvailability(id, tenantId, isAvailable);
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
     return result;
   },
 
   async toggleOnlineAvailability(id: string, tenantId: string, availableOnline: boolean) {
     const result = await menuRepository.toggleOnlineAvailability(id, tenantId, availableOnline);
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
     return result;
   },
 
@@ -97,7 +111,7 @@ export const menuService = {
   ) {
     const result = await menuRepository.toggleBranchMenuItem(tenantId, branchId, menuItemId, isAvailable);
     // Invalidate the public catalog cache so the ordering template sees the change
-    await cacheInvalidateByTag(`catalog:${tenantId}`);
+    await invalidateCatalog(tenantId);
     return result;
   },
 };
