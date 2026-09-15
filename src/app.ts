@@ -56,9 +56,17 @@ app.use((_req, res, next) => {
 });
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // limit each IP to 1000 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: env.NODE_ENV === "development" ? 2000 : 200, // limit each IP per windowMs (2000 in dev, 200 in prod)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: {
+      code: "RATE_LIMITED",
+      message: "Too many requests from this IP, please try again later.",
+    },
+  },
 });
 app.use(limiter);
 
